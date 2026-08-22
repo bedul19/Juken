@@ -63,6 +63,8 @@ class EcuViewModel : ViewModel() {
         onDisconnected = {
             _connected.postValue(false)
             _statusMessage.postValue("Terputus dari ECU")
+            stopWatchdog()
+            stage = Stage.IDLE
         },
         onConnected = {
             _connected.postValue(true)
@@ -81,27 +83,51 @@ class EcuViewModel : ViewModel() {
         link.disconnect()
     }
 
-    private var livePollingJob: java.util.Timer? = null
+    private enum class Stage { IDLE, WAIT_PING_ACK, WAIT_IDENTITY_ACK, STREAMING }
+    private var stage = Stage.IDLE
+    private var lastPacketMs = 0L
+    private var watchdogTimer: java.util.Timer? = null
 
-    /** Kirim command live sekali. Kalau ECU cuma balas 1x per request (bukan streaming terus),
-     *  pakai startLivePolling() supaya command dikirim ulang otomatis tiap beberapa ratus ms. */
+    private val _ecuIdentity = MutableLiveData<String>("")
+    val ecuIdentity: LiveData<String> = _ecuIdentity
+
+    /** Mulai urutan handshake resmi: 1500 -> cek identitas -> 160A (stream). */
     fun startLive() {
-        appendRaw("» TX: ${EcuProtocol.LIVE_START_CMD}")
-        link.send(EcuProtocol.LIVE_START_CMD)
+        if (stage != Stage.IDLE) return
+        stage = Stage.WAIT_PING_ACK
+        appendRaw("» Handshake: kirim ping (1500)")
+        link.send(EcuProtocol.HANDSHAKE_PING)
     }
 
-    fun startLivePolling(intervalMs: Long = 300) {
-        stopLivePolling()
-        livePollingJob = java.util.Timer().apply {
+    fun stopLive() {
+        stopWatchdog()
+        stage = Stage.IDLE
+        link.send(EcuProtocol.NVL_STREAM_STOP)
+        appendRaw("» Stream dihentikan (160B)")
+    }
+
+    // Dipertahankan biar kompatibel kalau ada pemanggil lama; sekarang jadi alias.
+    fun startLivePolling(intervalMs: Long = 300) { startLive() }
+    fun stopLivePolling() { stopLive() }
+
+    private fun startWatchdog() {
+        stopWatchdog()
+        watchdogTimer = java.util.Timer().apply {
             scheduleAtFixedRate(object : java.util.TimerTask() {
-                override fun run() { startLive() }
-            }, 0, intervalMs)
+                override fun run() {
+                    if (stage != Stage.STREAMING) return
+                    val now = System.currentTimeMillis()
+                    if (lastPacketMs > 0 && now - lastPacketMs > EcuProtocol.NVL_STREAM_REKICK_MS) {
+                        link.send(EcuProtocol.NVL_STREAM_START)
+                    }
+                }
+            }, 200, 200)
         }
     }
 
-    fun stopLivePolling() {
-        livePollingJob?.cancel()
-        livePollingJob = null
+    private fun stopWatchdog() {
+        watchdogTimer?.cancel()
+        watchdogTimer = null
     }
 
     fun readMap(spec: MapSpec) {
@@ -170,6 +196,29 @@ class EcuViewModel : ViewModel() {
         val trimmed = line.trim()
         appendRaw("« RX: $trimmed")
 
+        // --- Handshake resmi NVL ---
+        if (stage == Stage.WAIT_PING_ACK && trimmed.startsWith(EcuProtocol.HANDSHAKE_PING_ACK_PREFIX)) {
+            stage = Stage.WAIT_IDENTITY_ACK
+            appendRaw("» Handshake: ping OK, minta identitas (1617)")
+            link.send(EcuProtocol.HANDSHAKE_IDENTITY)
+            return
+        }
+        if (stage == Stage.WAIT_IDENTITY_ACK && trimmed.startsWith(EcuProtocol.HANDSHAKE_IDENTITY_ACK_PREFIX)) {
+            _ecuIdentity.postValue(trimmed)
+            if (EcuProtocol.isNvlIdentity(trimmed)) {
+                stage = Stage.STREAMING
+                lastPacketMs = System.currentTimeMillis()
+                appendRaw("» Identitas cocok (NVL/R15/D-BAND) → mulai stream (160A)")
+                link.send(EcuProtocol.NVL_STREAM_START)
+                startWatchdog()
+            } else {
+                stage = Stage.IDLE
+                appendRaw("» ECU BUKAN varian NVL/R15/D-BAND — streaming tidak dilanjutkan")
+                _statusMessage.postValue("ECU bukan NVL/R15 D-BAND — streaming diblokir")
+            }
+            return
+        }
+
         if (trimmed == EcuProtocol.ACK_TOKEN) {
             _writeAck.postValue(true)
             return
@@ -198,6 +247,7 @@ class EcuViewModel : ViewModel() {
         }
 
         val frame = EcuProtocol.parseLiveLine(trimmed, ++pktCounter) ?: return
+        lastPacketMs = System.currentTimeMillis()
         _liveFrame.postValue(frame)
 
         if (isLogging) {
