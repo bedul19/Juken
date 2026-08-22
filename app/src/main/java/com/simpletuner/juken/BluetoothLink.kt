@@ -18,7 +18,8 @@ import java.util.concurrent.Executors
 class BluetoothLink(
     private val onLine: (String) -> Unit,
     private val onError: (String) -> Unit,
-    private val onDisconnected: () -> Unit
+    private val onDisconnected: () -> Unit,
+    private val onConnected: () -> Unit = {}
 ) {
     private var socket: BluetoothSocket? = null
     private var output: OutputStream? = null
@@ -36,6 +37,7 @@ class BluetoothLink(
                 socket = sock
                 output = sock.outputStream
                 running = true
+                onConnected()
                 listenLoop(sock)
             } catch (e: IOException) {
                 onError("Gagal konek: ${e.message}")
