@@ -2,6 +2,8 @@ package com.simpletuner.juken
 
 import android.os.Bundle
 import android.view.View
+import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -11,6 +13,7 @@ import java.util.Locale
 class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
 
     private val viewModel: EcuViewModel by activityViewModels()
+    private var polling = false
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -25,6 +28,9 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         val inj = view.findViewById<TextView>(R.id.injValue)
         val ign = view.findViewById<TextView>(R.id.ignValue)
         val fcorr = view.findViewById<TextView>(R.id.fcorrValue)
+        val rawLog = view.findViewById<TextView>(R.id.rawLogText)
+        val rawInput = view.findViewById<EditText>(R.id.rawCommandInput)
+        val pollBtn = view.findViewById<Button>(R.id.pollLiveButton)
 
         view.findViewById<View>(R.id.startLiveButton).setOnClickListener {
             if (viewModel.connected.value != true) {
@@ -32,6 +38,31 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
             } else {
                 viewModel.startLive()
             }
+        }
+
+        pollBtn.setOnClickListener {
+            if (viewModel.connected.value != true) {
+                Toast.makeText(requireContext(), "Hubungkan ke ECU dulu di tab Connect", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            polling = !polling
+            if (polling) {
+                viewModel.startLivePolling()
+                pollBtn.text = "Berhenti Polling"
+            } else {
+                viewModel.stopLivePolling()
+                pollBtn.text = "Mulai Polling Otomatis (tiap 300ms)"
+            }
+        }
+
+        view.findViewById<View>(R.id.sendRawButton).setOnClickListener {
+            val cmd = rawInput.text.toString().trim()
+            if (cmd.isEmpty()) return@setOnClickListener
+            if (viewModel.connected.value != true) {
+                Toast.makeText(requireContext(), "Hubungkan ke ECU dulu di tab Connect", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            viewModel.sendRawCommand(cmd)
         }
 
         viewModel.liveFrame.observe(viewLifecycleOwner) { f ->
@@ -46,5 +77,14 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
             ign.text = String.format(Locale.US, "Ignition Timing: %.2f", f.ignitionTiming)
             fcorr.text = String.format(Locale.US, "Fuel Correction: %.2f", f.fuelCorrection)
         }
+
+        viewModel.rawLog.observe(viewLifecycleOwner) { log ->
+            rawLog.text = log
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        if (polling) viewModel.stopLivePolling()
     }
 }
