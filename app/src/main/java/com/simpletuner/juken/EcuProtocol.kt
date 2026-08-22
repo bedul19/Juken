@@ -20,26 +20,13 @@ object EcuProtocol {
     const val SPP_UUID = "00001101-0000-1000-8000-00805F9B34FB"
     const val FRAME_ENDING = "\r\n"
     const val ACK_TOKEN = "1A00"
-    const val LIVE_PREFIX = "A603"
-    const val LIVE_START_CMD = "1609" // legacy label, bukan command wire yang sebenarnya
+    const val LIVE_SYNC_TOKEN = "A603" // dicek case-insensitive ("a603" juga valid)
 
-    // Urutan handshake asli firmware NVL (ditemukan dari analisa lebih lanjut):
-    // 1500 -> balasan "9500;..." -> 1617 -> balasan "9616;..." (identitas ECU)
-    // -> kalau identitas mengandung NVL/R15/D-BAND -> kirim 160A buat mulai stream
-    // -> kalau 900ms gak ada paket baru, kirim ulang 160A (rekick)
-    // -> 160B buat berhenti
-    const val HANDSHAKE_PING = "1500"
-    const val HANDSHAKE_PING_ACK_PREFIX = "9500;"
-    const val HANDSHAKE_IDENTITY = "1617"
-    const val HANDSHAKE_IDENTITY_ACK_PREFIX = "9616;"
-    const val NVL_STREAM_START = "160A"
-    const val NVL_STREAM_STOP = "160B"
-    const val NVL_STREAM_REKICK_MS = 900L
-
-    fun isNvlIdentity(text: String): Boolean {
-        val upper = text.uppercase()
-        return upper.contains("NVL") || upper.contains("R15") || upper.contains("D-BAND")
-    }
+    // Dikonfirmasi langsung dari APK RESMI BRT (Juken-5-Android-2.2.0):
+    // begitu socket connect, langsung kirim "160A\r\n" untuk mulai live stream.
+    // TIDAK ADA handshake/ping pendahulu. "160B\r\n" untuk berhenti.
+    const val LIVE_START_CMD = "160A"
+    const val LIVE_STOP_CMD = "160B"
 
     // Peta kalibrasi. Confidence WRITE_CONFIRMED = jalur yang paling teruji
     // (dipakai + di-ack per baris oleh ECU). Selain itu dikunci read-only
@@ -53,84 +40,78 @@ object EcuProtocol {
 
     /**
      * Parse satu baris teks dari ECU menjadi LiveFrame.
-     * Format: A603;tpsIndex;bat;xfile;rpm;eot;[fuelCorr];afr;base;injTiming;ignTiming;yfile;iat
-     * Field fuelCorr kadang tidak dikirim tergantung firmware; dideteksi dari jumlah kolom
-     * dan sanity-check nilai AFR (5..25) & base (0..30) seperti pada aplikasi referensi.
+     * Urutan token PERSIS sesuai APK resmi BRT (state machine "posisi" di live_awal.java):
+     *   0: A603/a603 (sync)         7: AFR (raw, tampil apa adanya)
+     *   1: TPS raw (skala 0-20)     8: Base map (raw, tampil apa adanya)
+     *   2: Baterai (raw volt)       9: Injector timing (raw, tampil apa adanya)
+     *   3: Core (\"1\" / \"2\")        10: Ignition timing raw -> /10.0
+     *   4: RPM (raw integer)       11: Map raw -> mappingMap(raw*5.0/1023.0)
+     *   5: EOT raw -> /10.0        12: IAT raw -> /10.0
+     *   6: Fuel raw (dipakai utk lookup tabel di app asli, di sini disimpan apa adanya)
      */
     fun parseLiveLine(line: String, pktCounter: Long): LiveFrame? {
         val trimmed = line.trim()
-        val idx = trimmed.indexOf("$LIVE_PREFIX;").takeIf { it >= 0 }
-            ?: trimmed.indexOf("${LIVE_PREFIX.lowercase()};")
+        val idx = trimmed.indexOf("$LIVE_SYNC_TOKEN;").takeIf { it >= 0 }
+            ?: trimmed.indexOf("${LIVE_SYNC_TOKEN.lowercase()};")
         if (idx < 0) return null
         val frame = trimmed.substring(idx)
         val parts = frame.split(";")
-        if (parts.size < 12) return null
+        if (parts.size < 13) return null
 
         fun f(i: Int) = parts.getOrNull(i)?.toFloatOrNull() ?: 0f
         fun i(i: Int) = parts.getOrNull(i)?.toIntOrNull() ?: 0
 
-        val tpsIndex = i(1)
+        val tpsRaw = i(1)
         val bat = f(2)
+        // val core = parts.getOrNull(3) // "1" atau "2", info core ECU aktif
         val rpm = i(4)
         val eotRaw = f(5)
+        val fuelRaw = f(6)
+        val afr = f(7)
+        val baseRaw = f(8)
+        val injTiming = f(9)
+        val ignRaw = f(10)
+        val mapRaw = f(11)
+        val iatRaw = f(12)
 
-        val fullMode = parts.size >= 13 &&
-            f(7) in 5f..25f && f(8) in 0f..30f
-
-        val afr: Float
-        val baseRaw: Float
-        val injTiming: Float
-        val ignRaw: Float
-        val yfile: Int
-        val iatRaw: Float
-        val fuelCorr: Float
-
-        if (fullMode) {
-            fuelCorr = f(6)
-            afr = f(7)
-            baseRaw = f(8)
-            injTiming = f(9)
-            ignRaw = f(10)
-            yfile = i(11)
-            iatRaw = f(12)
-        } else {
-            fuelCorr = 0f
-            afr = f(6)
-            baseRaw = f(7)
-            injTiming = f(8)
-            ignRaw = f(9)
-            yfile = i(10)
-            iatRaw = f(11)
+        val tpsPercent = when {
+            tpsRaw <= 0 -> 0
+            tpsRaw == 1 -> 5
+            tpsRaw in 2..19 -> (tpsRaw * 5 - 5)
+            else -> 100 // tpsRaw >= 20
         }
 
-        val mapPercent = (((yfile / 1023f) * 100f).toInt()).coerceIn(0, 100)
+        val mapPercent = mappingMap(mapRaw * 5.0 / 1023.0).toInt().coerceIn(0, 100)
 
         return LiveFrame(
             pktNo = pktCounter,
             rpm = rpm,
-            tpsPercent = tpsIndex.coerceIn(0, 100),
+            tpsPercent = tpsPercent,
             batteryVolt = bat,
-            exhaustTemp = scaleTemp(eotRaw),
-            intakeTemp = scaleTemp(iatRaw),
+            exhaustTemp = eotRaw / 10f,
+            intakeTemp = iatRaw / 10f,
             afr = afr,
-            baseMapValue = scaleBase(baseRaw),
+            baseMapValue = baseRaw,
             injectorTiming = injTiming,
-            ignitionTiming = scaleIgnition(ignRaw),
-            fuelCorrection = fuelCorr,
+            ignitionTiming = ignRaw / 10f,
+            fuelCorrection = fuelRaw,
             mapPercent = mapPercent,
             raw = trimmed
         )
     }
 
-    private fun scaleTemp(v: Float) = if (v > 150f) v / 10f else v
-    private fun scaleBase(v: Float) = when {
-        v > 100f -> v / 100f
-        v > 20f -> v / 10f
-        else -> v
-    }
-    private fun scaleIgnition(v: Float) = when {
-        v > 500f -> v / 100f
-        v > 80f -> v / 10f
-        else -> v
+    /** Kalibrasi voltase sensor MAP -> persen, disalin persis dari APK resmi. */
+    private fun mappingMap(volt: Double): Double = when {
+        volt < 0.3 -> (100.0 * volt) / 3.0
+        volt < 0.6 -> ((100.0 * (volt - 0.3)) / 3.0) + 10.0
+        volt < 1.1 -> ((100.0 * (volt - 0.6)) / 5.0) + 20.0
+        volt < 1.7 -> ((100.0 * (volt - 1.1)) / 6.0) + 30.0
+        volt < 2.2 -> ((100.0 * (volt - 1.7)) / 5.0) + 40.0
+        volt < 2.7 -> ((100.0 * (volt - 2.2)) / 5.0) + 50.0
+        volt < 3.3 -> ((100.0 * (volt - 2.7)) / 6.0) + 60.0
+        volt < 3.8 -> ((100.0 * (volt - 3.3)) / 5.0) + 70.0
+        volt < 4.4 -> ((100.0 * (volt - 3.8)) / 6.0) + 80.0
+        volt < 4.9 -> ((100.0 * (volt - 4.4)) / 5.0) + 90.0
+        else -> 100.0
     }
 }
