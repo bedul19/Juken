@@ -2,7 +2,6 @@ package com.simpletuner.juken
 
 import android.os.Bundle
 import android.view.View
-import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
@@ -13,7 +12,6 @@ import java.util.Locale
 class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
 
     private val viewModel: EcuViewModel by activityViewModels()
-    private var polling = false
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -30,7 +28,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         val fcorr = view.findViewById<TextView>(R.id.fcorrValue)
         val rawLog = view.findViewById<TextView>(R.id.rawLogText)
         val rawInput = view.findViewById<EditText>(R.id.rawCommandInput)
-        val pollBtn = view.findViewById<Button>(R.id.pollLiveButton)
+        val identityText = view.findViewById<TextView>(R.id.identityText)
 
         view.findViewById<View>(R.id.startLiveButton).setOnClickListener {
             if (viewModel.connected.value != true) {
@@ -40,19 +38,8 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
             }
         }
 
-        pollBtn.setOnClickListener {
-            if (viewModel.connected.value != true) {
-                Toast.makeText(requireContext(), "Hubungkan ke ECU dulu di tab Connect", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            polling = !polling
-            if (polling) {
-                viewModel.startLivePolling()
-                pollBtn.text = "Berhenti Polling"
-            } else {
-                viewModel.stopLivePolling()
-                pollBtn.text = "Mulai Polling Otomatis (tiap 300ms)"
-            }
+        view.findViewById<View>(R.id.pollLiveButton).setOnClickListener {
+            viewModel.stopLive()
         }
 
         view.findViewById<View>(R.id.sendRawButton).setOnClickListener {
@@ -81,10 +68,9 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         viewModel.rawLog.observe(viewLifecycleOwner) { log ->
             rawLog.text = log
         }
-    }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        if (polling) viewModel.stopLivePolling()
+        viewModel.ecuIdentity.observe(viewLifecycleOwner) { id ->
+            if (id.isNotBlank()) identityText.text = "Identitas ECU: $id"
+        }
     }
 }
