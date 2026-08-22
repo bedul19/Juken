@@ -7,6 +7,26 @@ dari aplikasi teman (dengan izin) — bukan hasil salin-tempel kode.
 
 ## Cara build
 
+### Opsi A — GitHub Actions (bisa dari HP, tidak perlu Android Studio)
+
+Project ini sudah punya workflow di `.github/workflows/build-apk.yml` yang
+otomatis build APK setiap kali kamu push ke GitHub.
+
+1. Buat repo baru di GitHub (lewat browser HP juga bisa).
+2. Upload semua isi folder project ini ke repo tersebut, jaga strukturnya
+   (termasuk folder `.github`).
+3. Buka tab **Actions** di repo → akan ada run "Build APK" jalan otomatis.
+4. Setelah selesai (~beberapa menit), buka run tersebut → scroll ke bagian
+   **Artifacts** → download `SimpleJukenTuner-debug-apk` (berupa file .zip
+   berisi .apk di dalamnya).
+5. Extract, lalu install APK di HP (aktifkan "Izinkan dari sumber ini" saat
+   diminta, karena bukan dari Play Store).
+
+Catatan: ini APK **debug build** (tanda tangan default Android, bukan untuk
+dirilis publik) — cukup untuk testing pribadi di motor kamu.
+
+### Opsi B — Android Studio (di PC/laptop)
+
 1. Install Android Studio (versi terbaru).
 2. Buka folder project ini lewat "Open" di Android Studio (bukan "Import").
 3. Tunggu Gradle sync selesai (otomatis download dependency).
