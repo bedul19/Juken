@@ -21,7 +21,25 @@ object EcuProtocol {
     const val FRAME_ENDING = "\r\n"
     const val ACK_TOKEN = "1A00"
     const val LIVE_PREFIX = "A603"
-    const val LIVE_START_CMD = "1609"
+    const val LIVE_START_CMD = "1609" // legacy label, bukan command wire yang sebenarnya
+
+    // Urutan handshake asli firmware NVL (ditemukan dari analisa lebih lanjut):
+    // 1500 -> balasan "9500;..." -> 1617 -> balasan "9616;..." (identitas ECU)
+    // -> kalau identitas mengandung NVL/R15/D-BAND -> kirim 160A buat mulai stream
+    // -> kalau 900ms gak ada paket baru, kirim ulang 160A (rekick)
+    // -> 160B buat berhenti
+    const val HANDSHAKE_PING = "1500"
+    const val HANDSHAKE_PING_ACK_PREFIX = "9500;"
+    const val HANDSHAKE_IDENTITY = "1617"
+    const val HANDSHAKE_IDENTITY_ACK_PREFIX = "9616;"
+    const val NVL_STREAM_START = "160A"
+    const val NVL_STREAM_STOP = "160B"
+    const val NVL_STREAM_REKICK_MS = 900L
+
+    fun isNvlIdentity(text: String): Boolean {
+        val upper = text.uppercase()
+        return upper.contains("NVL") || upper.contains("R15") || upper.contains("D-BAND")
+    }
 
     // Peta kalibrasi. Confidence WRITE_CONFIRMED = jalur yang paling teruji
     // (dipakai + di-ack per baris oleh ECU). Selain itu dikunci read-only
