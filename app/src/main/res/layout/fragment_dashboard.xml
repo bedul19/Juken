@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+<LinearLayout
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp">
+
+    <Button
+        android:id="@+id/startLiveButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Mulai Live Monitor" />
+
+    <TextView android:id="@+id/rpmValue" style="@style/DashValue" android:text="RPM: -" />
+    <TextView android:id="@+id/tpsValue" style="@style/DashValue" android:text="TPS: -" />
+    <TextView android:id="@+id/afrValue" style="@style/DashValue" android:text="AFR: -" />
+    <TextView android:id="@+id/batValue" style="@style/DashValue" android:text="Baterai: -" />
+    <TextView android:id="@+id/eotValue" style="@style/DashValue" android:text="Suhu Exhaust: -" />
+    <TextView android:id="@+id/iatValue" style="@style/DashValue" android:text="Suhu Intake: -" />
+    <TextView android:id="@+id/baseValue" style="@style/DashValue" android:text="Base Map: -" />
+    <TextView android:id="@+id/injValue" style="@style/DashValue" android:text="Injector Timing: -" />
+    <TextView android:id="@+id/ignValue" style="@style/DashValue" android:text="Ignition Timing: -" />
+    <TextView android:id="@+id/fcorrValue" style="@style/DashValue" android:text="Fuel Correction: -" />
+
+</LinearLayout>
+</ScrollView>
