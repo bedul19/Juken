@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Baca dulu sebelum menulis. Selalu ekspor backup sebelum menimpa kalibrasi."
+        android:textStyle="italic"
+        android:paddingBottom="12dp" />
+
+    <Button android:id="@+id/readBaseButton" style="@style/MapButton" android:text="Baca Base Map" />
+    <Button android:id="@+id/readFuelButton" style="@style/MapButton" android:text="Baca Fuel Map" />
+    <Button android:id="@+id/readInjectorButton" style="@style/MapButton" android:text="Baca Injector Map" />
+    <Button android:id="@+id/readIgnitionButton" style="@style/MapButton" android:text="Baca Ignition Map" />
+
+    <TextView
+        android:id="@+id/mapTitleText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:textSize="11sp"
+        android:textColor="#8CA0AC" />
+
+    <!-- Tabel map: scroll horizontal (kolom RPM) di dalam scroll vertical (baris Load/TPS) -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="4dp"
+        android:background="#080C0F">
+
+        <TextView
+            android:id="@+id/mapPlaceholder"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:padding="24dp"
+            android:textSize="12sp"
+            android:textColor="#8CA0AC"
+            android:text="Belum ada data map dibaca.\nTekan salah satu tombol di atas." />
+
+        <ScrollView
+            android:id="@+id/mapVScroll"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone">
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <TableLayout
+                    android:id="@+id/mapTable"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+            </HorizontalScrollView>
+        </ScrollView>
+    </FrameLayout>
+
+    <Button
+        android:id="@+id/writeBackButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="Tulis Ulang Map Ini ke ECU" />
+
+</LinearLayout>
