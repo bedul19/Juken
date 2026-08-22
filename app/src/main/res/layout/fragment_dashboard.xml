@@ -13,7 +13,7 @@
         android:id="@+id/startLiveButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Mulai Live Stream (handshake NVL)" />
+        android:text="Mulai Live Stream (160A)" />
 
     <Button
         android:id="@+id/pollLiveButton"
