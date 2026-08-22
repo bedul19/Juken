@@ -24,6 +24,13 @@ class EcuViewModel : ViewModel() {
     private val _statusMessage = MutableLiveData<String>("")
     val statusMessage: LiveData<String> = _statusMessage
 
+    // Log mentah semua baris yang masuk dari ECU, apa adanya — buat debugging.
+    // Kalau ini tetap kosong terus setelah kirim command, artinya ECU memang
+    // tidak membalas apa-apa (bukan masalah parsing di aplikasi).
+    private val _rawLog = MutableLiveData<String>("(belum ada data masuk)")
+    val rawLog: LiveData<String> = _rawLog
+    private val rawLines = ArrayDeque<String>()
+
     private val _mapResult = MutableLiveData<Pair<MapSpec, List<List<Int>>>>()
     val mapResult: LiveData<Pair<MapSpec, List<List<Int>>>> = _mapResult
 
@@ -49,18 +56,24 @@ class EcuViewModel : ViewModel() {
 
     val link = BluetoothLink(
         onLine = { line -> handleLine(line) },
-        onError = { msg -> _statusMessage.postValue(msg) },
+        onError = { msg ->
+            _statusMessage.postValue(msg)
+            _connected.postValue(false)
+        },
         onDisconnected = {
             _connected.postValue(false)
             _statusMessage.postValue("Terputus dari ECU")
+        },
+        onConnected = {
+            _connected.postValue(true)
+            _statusMessage.postValue("Terhubung ke ECU")
         }
     )
 
     fun connect(device: BluetoothDevice) {
         _deviceName.postValue(device.name ?: device.address)
-        link.connect(device)
-        _connected.postValue(true)
         _statusMessage.postValue("Menghubungkan...")
+        link.connect(device)
     }
 
     fun disconnect() {
@@ -68,8 +81,27 @@ class EcuViewModel : ViewModel() {
         link.disconnect()
     }
 
+    private var livePollingJob: java.util.Timer? = null
+
+    /** Kirim command live sekali. Kalau ECU cuma balas 1x per request (bukan streaming terus),
+     *  pakai startLivePolling() supaya command dikirim ulang otomatis tiap beberapa ratus ms. */
     fun startLive() {
+        appendRaw("» TX: ${EcuProtocol.LIVE_START_CMD}")
         link.send(EcuProtocol.LIVE_START_CMD)
+    }
+
+    fun startLivePolling(intervalMs: Long = 300) {
+        stopLivePolling()
+        livePollingJob = java.util.Timer().apply {
+            scheduleAtFixedRate(object : java.util.TimerTask() {
+                override fun run() { startLive() }
+            }, 0, intervalMs)
+        }
+    }
+
+    fun stopLivePolling() {
+        livePollingJob?.cancel()
+        livePollingJob = null
     }
 
     fun readMap(spec: MapSpec) {
@@ -122,8 +154,21 @@ class EcuViewModel : ViewModel() {
         _statusMessage.postValue("Logging dihentikan")
     }
 
+    /** Kirim command mentah apa saja ke ECU — dipakai buat eksperimen/debug protokol. */
+    fun sendRawCommand(command: String) {
+        appendRaw("» TX: $command")
+        link.send(command)
+    }
+
+    private fun appendRaw(line: String) {
+        rawLines.addLast(line)
+        while (rawLines.size > 200) rawLines.removeFirst()
+        _rawLog.postValue(rawLines.joinToString("\n"))
+    }
+
     private fun handleLine(line: String) {
         val trimmed = line.trim()
+        appendRaw("« RX: $trimmed")
 
         if (trimmed == EcuProtocol.ACK_TOKEN) {
             _writeAck.postValue(true)
