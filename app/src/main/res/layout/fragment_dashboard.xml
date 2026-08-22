@@ -13,7 +13,14 @@
         android:id="@+id/startLiveButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Mulai Live Monitor" />
+        android:text="Mulai Live Monitor (1x)" />
+
+    <Button
+        android:id="@+id/pollLiveButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="Mulai Polling Otomatis (tiap 300ms)" />
 
     <TextView android:id="@+id/rpmValue" style="@style/DashValue" android:text="RPM: -" />
     <TextView android:id="@+id/tpsValue" style="@style/DashValue" android:text="TPS: -" />
@@ -25,6 +32,55 @@
     <TextView android:id="@+id/injValue" style="@style/DashValue" android:text="Injector Timing: -" />
     <TextView android:id="@+id/ignValue" style="@style/DashValue" android:text="Ignition Timing: -" />
     <TextView android:id="@+id/fcorrValue" style="@style/DashValue" android:text="Fuel Correction: -" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Debug — Raw Data dari ECU"
+        android:textStyle="bold" />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="11sp"
+        android:textColor="#8CA0AC"
+        android:paddingBottom="6dp"
+        android:text="Kalau kotak di bawah tetap kosong terus setelah tap Mulai, artinya ECU memang tidak membalas apa-apa ke command yang dikirim (bukan masalah tampilan)." />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="180dp"
+        android:background="#080C0F">
+        <TextView
+            android:id="@+id/rawLogText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textSize="10sp"
+            android:textColor="#9FE6DC"
+            android:padding="8dp"
+            android:text="(belum ada data masuk)" />
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <EditText
+            android:id="@+id/rawCommandInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Ketik command manual, mis. 1609" />
+
+        <Button
+            android:id="@+id/sendRawButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Kirim" />
+    </LinearLayout>
 
 </LinearLayout>
 </ScrollView>
