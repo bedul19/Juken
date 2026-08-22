@@ -1,0 +1,17 @@
+<resources>
+    <style name="Theme.SimpleJukenTuner" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
+
+    <style name="DashValue">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:paddingTop">6dp</item>
+        <item name="android:paddingBottom">6dp</item>
+    </style>
+
+    <style name="MapButton">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginBottom">4dp</item>
+    </style>
+</resources>
