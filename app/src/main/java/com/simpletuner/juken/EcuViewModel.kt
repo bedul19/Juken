@@ -71,6 +71,7 @@ class EcuViewModel : ViewModel() {
         onConnected = {
             _connected.postValue(true)
             _statusMessage.postValue("Terhubung ke ECU")
+            fetchIdentity()
         }
     )
 
@@ -89,6 +90,12 @@ class EcuViewModel : ViewModel() {
 
     private val _ecuIdentity = MutableLiveData<String>("")
     val ecuIdentity: LiveData<String> = _ecuIdentity
+
+    /** Minta identitas ECU (nama, model, versi firmware) — command 1617, terkonfirmasi dari sniff asli. */
+    fun fetchIdentity() {
+        appendRaw("» TX: 1617")
+        link.send("1617")
+    }
 
     /** Mulai live stream: langsung kirim 160A (sesuai APK resmi BRT, tanpa handshake). */
     fun startLive() {
@@ -138,12 +145,15 @@ class EcuViewModel : ViewModel() {
         link.send(payload)
     }
 
+    /** Tulis rows apa pun ke ECU (dipakai buat data hasil baca, import, atau pattern). */
+    fun writeRows(spec: MapSpec, rows: List<List<Float>>) {
+        rows.forEachIndexed { row, values -> writeMapRow(spec, row, values) }
+    }
+
     /** Tulis kembali seluruh baris hasil pembacaan terakhir (round-trip / restore backup). */
     fun writeBackLastRead() {
         val spec = lastReadMapSpec ?: return
-        lastReadRows.forEachIndexed { row, values ->
-            writeMapRow(spec, row, values)
-        }
+        writeRows(spec, lastReadRows)
     }
 
     fun startLogging(logDir: File) {
@@ -181,6 +191,11 @@ class EcuViewModel : ViewModel() {
     private fun handleLine(line: String) {
         val trimmed = line.trim()
         appendRaw("« RX: $trimmed")
+
+        if (trimmed.startsWith("9616;")) {
+            _ecuIdentity.postValue(trimmed.removePrefix("9616;").trim())
+            return
+        }
 
         if (trimmed == EcuProtocol.ACK_TOKEN) {
             _writeAck.postValue(true)
