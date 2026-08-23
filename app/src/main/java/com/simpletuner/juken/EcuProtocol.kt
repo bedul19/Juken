@@ -13,7 +13,8 @@ data class MapSpec(
     val writeOpcode: String,
     val rows: Int,
     val cols: Int,
-    val writeConfidence: Confidence
+    val writeConfidence: Confidence,
+    val isDecimal: Boolean = false // true khusus Base Map (nilainya "3.10" dst, bukan integer)
 )
 
 object EcuProtocol {
@@ -28,10 +29,15 @@ object EcuProtocol {
     const val LIVE_START_CMD = "160A"
     const val LIVE_STOP_CMD = "160B"
 
+    // Dikonfirmasi dari analisa lalu lintas Bluetooth sesi asli (btsnoop):
+    // baca map itu PER-BARIS, format "<opcode>;<core>;<row>", bukan sekali kirim.
+    // Param "2" ini konsisten dipakai di sesi asli & cocok dengan field "core" di live data.
+    const val MAP_CORE_PARAM = "2"
+
     // Peta kalibrasi. Confidence WRITE_CONFIRMED = jalur yang paling teruji
     // (dipakai + di-ack per baris oleh ECU). Selain itu dikunci read-only
     // di versi simple demi keamanan.
-    val BASE_MAP = MapSpec("Base Map", "1601", "2601", 21, 61, Confidence.WRITE_CONFIRMED)
+    val BASE_MAP = MapSpec("Base Map", "1601", "2601", 21, 61, Confidence.WRITE_CONFIRMED, isDecimal = true)
     val FUEL_MAP = MapSpec("Fuel Map", "1602", "2602", 21, 61, Confidence.WRITE_CONFIRMED)
     val INJECTOR_MAP = MapSpec("Injector Map", "1603", "2603", 21, 61, Confidence.WRITE_CONFIRMED)
     val IGNITION_MAP = MapSpec("Ignition Map", "1605", "2605", 21, 31, Confidence.WRITE_CONFIRMED)
@@ -101,6 +107,10 @@ object EcuProtocol {
     }
 
     /** Kalibrasi voltase sensor MAP -> persen, disalin persis dari APK resmi. */
+    /** Format nilai buat dikirim ke ECU — 2 desimal khusus Base Map, integer polos untuk map lain. */
+    fun formatValue(v: Float, isDecimal: Boolean): String =
+        if (isDecimal) String.format(java.util.Locale.US, "%.2f", v) else v.toInt().toString()
+
     private fun mappingMap(volt: Double): Double = when {
         volt < 0.3 -> (100.0 * volt) / 3.0
         volt < 0.6 -> ((100.0 * (volt - 0.3)) / 3.0) + 10.0
