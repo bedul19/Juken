@@ -1,3 +1,17 @@
 <resources>
+    <!-- iOS system palette (light mode) -->
+    <color name="ios_background">#F2F2F7</color>
+    <color name="ios_card">#FFFFFF</color>
+    <color name="ios_blue">#007AFF</color>
+    <color name="ios_red">#FF3B30</color>
+    <color name="ios_green">#34C759</color>
+    <color name="ios_orange">#FF9500</color>
+    <color name="ios_label">#000000</color>
+    <color name="ios_label_secondary">#8E8E93</color>
+    <color name="ios_label_tertiary">#C7C7CC</color>
+    <color name="ios_separator">#E5E5EA</color>
+    <color name="ios_fill">#F2F2F7</color>
+    <color name="ios_grouped_header">#6D6D72</color>
+
     <color name="ic_launcher_background">#1B2A3A</color>
 </resources>
