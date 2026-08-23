@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/ios_background">
+
+    <!-- Top bar ala iOS navigation -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/backButton"
+            android:text="‹ Maps"
+            android:textColor="@color/ios_blue"
+            android:textSize="17sp"
+            android:padding="4dp"
+            android:clickable="true"
+            android:focusable="true" />
+    </LinearLayout>
+
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp">
+
+            <TextView android:id="@+id/mapDetailTitle" style="@style/IosLargeTitle" android:text="Map" android:paddingBottom="4dp" />
+            <TextView android:id="@+id/mapDetailSubtitle" style="@style/IosCaption" android:text="-" android:paddingBottom="16dp" />
+
+            <!-- Aksi utama: 2 kolom -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="8dp">
+                <Button android:id="@+id/readButton" style="@style/IosButtonPrimary" android:text="Baca" android:layout_width="0dp" android:layout_weight="1" android:layout_marginEnd="6dp" />
+                <Button android:id="@+id/writeButton" style="@style/IosButtonDestructive" android:text="Tulis ke ECU" android:layout_width="0dp" android:layout_weight="1" android:layout_marginStart="6dp" />
+            </LinearLayout>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="20dp">
+                <Button android:id="@+id/exportButton" style="@style/IosButtonPrimary" android:backgroundTint="#8E8E93" android:text="Export" android:layout_width="0dp" android:layout_weight="1" android:layout_marginEnd="6dp" />
+                <Button android:id="@+id/importButton" style="@style/IosButtonPrimary" android:backgroundTint="#8E8E93" android:text="Import" android:layout_width="0dp" android:layout_weight="1" android:layout_marginStart="6dp" />
+            </LinearLayout>
+
+            <!-- Pattern section -->
+            <TextView style="@style/IosSectionHeader" android:text="Pattern (koreksi persen massal)" android:paddingBottom="6dp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_ios_card"
+                android:padding="12dp"
+                android:layout_marginBottom="20dp">
+
+                <EditText
+                    android:id="@+id/patternPercentInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="mis. -5 atau +10"
+                    android:inputType="numberSigned|numberDecimal"
+                    android:background="@android:color/transparent" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="%"
+                    android:textColor="@color/ios_label_secondary" />
+
+                <Button
+                    android:id="@+id/applyPatternButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Terapkan"
+                    android:textColor="@color/ios_blue"
+                    android:background="@android:color/transparent" />
+            </LinearLayout>
+
+            <TextView android:id="@+id/mapReadStatus" style="@style/IosCaption" android:text="" android:paddingBottom="8dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_ios_card"
+                android:padding="4dp">
+
+                <TextView
+                    android:id="@+id/mapPlaceholder"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:padding="24dp"
+                    android:textColor="@color/ios_label_secondary"
+                    android:text="Belum ada data. Tap 'Baca' dulu." />
+
+                <ScrollView
+                    android:id="@+id/mapVScroll"
+                    android:layout_width="match_parent"
+                    android:layout_height="260dp"
+                    android:visibility="gone">
+                    <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
+                        <TableLayout android:id="@+id/mapTable" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                    </HorizontalScrollView>
+                </ScrollView>
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
