@@ -1,19 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item
-        android:id="@+id/nav_connect"
-        android:title="Connect"
-        android:icon="@android:drawable/stat_sys_data_bluetooth" />
-    <item
-        android:id="@+id/nav_dashboard"
-        android:title="Dashboard"
-        android:icon="@android:drawable/ic_menu_compass" />
-    <item
-        android:id="@+id/nav_maps"
-        android:title="Maps"
-        android:icon="@android:drawable/ic_menu_edit" />
-    <item
-        android:id="@+id/nav_logging"
-        android:title="Logging"
-        android:icon="@android:drawable/ic_menu_save" />
+    <item android:id="@+id/nav_connect" android:title="Connect" android:icon="@drawable/ic_tab_connect" />
+    <item android:id="@+id/nav_dashboard" android:title="Dashboard" android:icon="@drawable/ic_tab_dashboard" />
+    <item android:id="@+id/nav_maps" android:title="Maps" android:icon="@drawable/ic_tab_maps" />
+    <item android:id="@+id/nav_autotune" android:title="Auto Tune" android:icon="@drawable/ic_tab_autotune" />
+    <item android:id="@+id/nav_more" android:title="More" android:icon="@drawable/ic_tab_more" />
 </menu>
