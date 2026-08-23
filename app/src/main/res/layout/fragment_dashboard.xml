@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/ios_background">
 
 <LinearLayout
     android:orientation="vertical"
@@ -9,86 +10,108 @@
     android:layout_height="wrap_content"
     android:padding="16dp">
 
-    <Button
-        android:id="@+id/startLiveButton"
+    <TextView style="@style/IosLargeTitle" android:text="Dashboard" android:paddingBottom="4dp" />
+    <TextView style="@style/IosCaption" android:text="Live data dari ECU" android:paddingBottom="16dp" />
+
+    <!-- RPM card -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Mulai Live Stream (160A)" />
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@drawable/bg_ios_card"
+        android:padding="20dp"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/rpmValue"
+            android:text="0"
+            android:textSize="48sp"
+            android:textStyle="bold"
+            android:textColor="@color/ios_label" />
+        <TextView style="@style/IosCaption" android:text="RPM" android:paddingBottom="12dp" />
+
+        <ProgressBar
+            android:id="@+id/rpmGauge"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="10dp"
+            android:max="12000"
+            android:progress="0"
+            android:progressTint="@color/ios_blue"
+            android:progressBackgroundTint="@color/ios_separator" />
+
+        <TextView
+            android:id="@+id/identityText"
+            style="@style/IosCaption"
+            android:layout_marginTop="12dp"
+            android:text="ECU: -" />
+    </LinearLayout>
+
+    <!-- Grid stat: 2 kolom pakai LinearLayout biasa -->
+    <LinearLayout
+        android:id="@+id/statGrid"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/startLiveButton"
+        style="@style/IosButtonPrimary"
+        android:text="Mulai Live Stream"
+        android:layout_marginBottom="10dp" />
 
     <Button
         android:id="@+id/pollLiveButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:text="Berhenti Stream" />
+        style="@style/IosButtonDestructive"
+        android:text="Berhenti Stream"
+        android:layout_marginBottom="20dp" />
 
-    <TextView
-        android:id="@+id/identityText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:textSize="11sp"
-        android:textColor="#8CA0AC"
-        android:text="Identitas ECU: -" />
-
-    <TextView android:id="@+id/rpmValue" style="@style/DashValue" android:text="RPM: -" />
-    <TextView android:id="@+id/tpsValue" style="@style/DashValue" android:text="TPS: -" />
-    <TextView android:id="@+id/afrValue" style="@style/DashValue" android:text="AFR: -" />
-    <TextView android:id="@+id/batValue" style="@style/DashValue" android:text="Baterai: -" />
-    <TextView android:id="@+id/eotValue" style="@style/DashValue" android:text="Suhu Exhaust: -" />
-    <TextView android:id="@+id/iatValue" style="@style/DashValue" android:text="Suhu Intake: -" />
-    <TextView android:id="@+id/baseValue" style="@style/DashValue" android:text="Base Map: -" />
-    <TextView android:id="@+id/injValue" style="@style/DashValue" android:text="Injector Timing: -" />
-    <TextView android:id="@+id/ignValue" style="@style/DashValue" android:text="Ignition Timing: -" />
-    <TextView android:id="@+id/fcorrValue" style="@style/DashValue" android:text="Fuel Correction: -" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Debug — Raw Data dari ECU"
-        android:textStyle="bold" />
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textSize="11sp"
-        android:textColor="#8CA0AC"
-        android:paddingBottom="6dp"
-        android:text="Kalau kotak di bawah tetap kosong terus setelah tap Mulai, artinya ECU memang tidak membalas apa-apa ke command yang dikirim (bukan masalah tampilan)." />
-
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="180dp"
-        android:background="#080C0F">
-        <TextView
-            android:id="@+id/rawLogText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:textSize="10sp"
-            android:textColor="#9FE6DC"
-            android:padding="8dp"
-            android:text="(belum ada data masuk)" />
-    </ScrollView>
+    <TextView style="@style/IosSectionHeader" android:text="Developer — Raw Data" android:paddingBottom="6dp" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="8dp">
+        android:orientation="vertical"
+        android:background="@drawable/bg_ios_card"
+        android:padding="12dp">
 
-        <EditText
-            android:id="@+id/rawCommandInput"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="Ketik command manual, mis. 1609" />
+        <ScrollView android:layout_width="match_parent" android:layout_height="160dp">
+            <TextView
+                android:id="@+id/rawLogText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textSize="10sp"
+                android:textColor="#3A3A3C"
+                android:text="(belum ada data masuk)" />
+        </ScrollView>
 
-        <Button
-            android:id="@+id/sendRawButton"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Kirim" />
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+
+            <EditText
+                android:id="@+id/rawCommandInput"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/bg_ios_inset"
+                android:padding="10dp"
+                android:hint="Command manual, mis. 160A" />
+
+            <Button
+                android:id="@+id/sendRawButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Kirim"
+                android:textColor="@color/ios_blue"
+                android:background="@android:color/transparent" />
+        </LinearLayout>
     </LinearLayout>
 
 </LinearLayout>
