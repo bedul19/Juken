@@ -31,15 +31,17 @@ class EcuViewModel : ViewModel() {
     val rawLog: LiveData<String> = _rawLog
     private val rawLines = ArrayDeque<String>()
 
-    private val _mapResult = MutableLiveData<Pair<MapSpec, List<List<Int>>>>()
-    val mapResult: LiveData<Pair<MapSpec, List<List<Int>>>> = _mapResult
+    private val _mapResult = MutableLiveData<Pair<MapSpec, List<List<Float>>>>()
+    val mapResult: LiveData<Pair<MapSpec, List<List<Float>>>> = _mapResult
 
     private val _mapReading = MutableLiveData(false)
     val mapReading: LiveData<Boolean> = _mapReading
+    private val _mapReadProgress = MutableLiveData(0) // baris ke berapa yang sedang dibaca
+    val mapReadProgress: LiveData<Int> = _mapReadProgress
 
     var lastReadMapSpec: MapSpec? = null
         private set
-    var lastReadRows: List<List<Int>> = emptyList()
+    var lastReadRows: List<List<Float>> = emptyList()
         private set
 
     private val _writeAck = MutableLiveData<Boolean>()
@@ -51,7 +53,8 @@ class EcuViewModel : ViewModel() {
     private var logWriter: FileOutputStream? = null
     private var pktCounter = 0L
 
-    private var pendingMapRead: MutableList<String>? = null
+    private var pendingMapRows: MutableList<List<Float>>? = null
+    private var pendingRowIndex = 0
     private var pendingMapSpec: MapSpec? = null
 
     val link = BluetoothLink(
@@ -105,33 +108,41 @@ class EcuViewModel : ViewModel() {
     fun startLivePolling(intervalMs: Long = 300) { startLive() }
     fun stopLivePolling() { stopLive() }
 
+    /** Mulai baca map dari ECU: kirim baris 0 dulu, baris berikutnya otomatis
+     *  dikirim begitu balasan baris sebelumnya diterima (lihat handleLine). */
     fun readMap(spec: MapSpec) {
         pendingMapSpec = spec
-        pendingMapRead = mutableListOf()
+        pendingMapRows = MutableList(spec.rows) { emptyList() }
+        pendingRowIndex = 0
         _mapReading.postValue(true)
-        link.send(spec.readOpcode)
+        _mapReadProgress.postValue(0)
+        requestMapRow(spec, 0)
+    }
+
+    private fun requestMapRow(spec: MapSpec, row: Int) {
+        val cmd = "${spec.readOpcode};${EcuProtocol.MAP_CORE_PARAM};$row"
+        appendRaw("» TX: $cmd")
+        link.send(cmd)
     }
 
     /**
-     * Tulis satu baris map ke ECU. Hanya dipanggil untuk MapSpec dengan
-     * writeConfidence == WRITE_CONFIRMED (dicek juga di UI sebelum tombol aktif).
-     * Format mengikuti pola yang dipakai firmware: <writeOpcode>;<xfile>;<row>;v1;v2;...
+     * Tulis satu baris map ke ECU. Format ini MENGIKUTI POLA BACA yang sudah
+     * terkonfirmasi (opcode;core;row;v1;v2;...) — belum ada contoh WRITE asli
+     * yang tersadap, jadi ini analogi terbaik yang kita punya, bukan 100% pasti.
+     * Hanya dipanggil untuk MapSpec dengan writeConfidence == WRITE_CONFIRMED.
      */
-    fun writeMapRow(spec: MapSpec, xfile: Int, rowIndex: Int, values: List<Int>) {
-        val payload = buildString {
-            append(spec.writeOpcode).append(';')
-            append(xfile).append(';')
-            append(rowIndex).append(';')
-            append(values.joinToString(";"))
-        }
+    fun writeMapRow(spec: MapSpec, rowIndex: Int, values: List<Float>) {
+        val formatted = values.joinToString(";") { v -> EcuProtocol.formatValue(v, spec.isDecimal) }
+        val payload = "${spec.writeOpcode};${EcuProtocol.MAP_CORE_PARAM};$rowIndex;$formatted"
+        appendRaw("» TX: $payload")
         link.send(payload)
     }
 
     /** Tulis kembali seluruh baris hasil pembacaan terakhir (round-trip / restore backup). */
-    fun writeBackLastRead(xfile: Int = 1) {
+    fun writeBackLastRead() {
         val spec = lastReadMapSpec ?: return
         lastReadRows.forEachIndexed { row, values ->
-            writeMapRow(spec, xfile, row, values)
+            writeMapRow(spec, row, values)
         }
     }
 
@@ -176,24 +187,25 @@ class EcuViewModel : ViewModel() {
             return
         }
 
-        // Tangkap balasan baca map: "9601;xfile;row;v1;v2;..." dst, dikumpulkan
-        // baris demi baris sampai jumlahnya sesuai spec.rows lalu di-finalize.
+        // Balasan baca map: "9601;v0;v1;...;v60" — TIDAK ada xfile/row di response,
+        // cuma prefix + nilai-nilai. Begitu satu baris diterima, langsung minta baris berikutnya.
         val spec = pendingMapSpec
-        if (spec != null && trimmed.startsWith(readAckPrefix(spec.readOpcode))) {
-            val cols = trimmed.split(";").drop(3).mapNotNull { it.toIntOrNull() }
-            if (cols.isNotEmpty()) {
-                pendingMapRead?.add(trimmed)
-                val rows = pendingMapRead.orEmpty().mapNotNull { line ->
-                    line.split(";").drop(3).map { it.toIntOrNull() ?: 0 }.takeIf { it.isNotEmpty() }
-                }
-                if (rows.size >= spec.rows) {
-                    lastReadMapSpec = spec
-                    lastReadRows = rows
-                    _mapResult.postValue(spec to rows)
-                    _mapReading.postValue(false)
-                    pendingMapSpec = null
-                    pendingMapRead = null
-                }
+        val prefix = spec?.let { readAckPrefix(it.readOpcode) + ";" }
+        if (spec != null && prefix != null && trimmed.startsWith(prefix)) {
+            val values = trimmed.removePrefix(prefix).split(";").map { it.toFloatOrNull() ?: 0f }
+            pendingMapRows?.set(pendingRowIndex, values)
+            _mapReadProgress.postValue(pendingRowIndex + 1)
+            pendingRowIndex++
+            if (pendingRowIndex < spec.rows) {
+                requestMapRow(spec, pendingRowIndex)
+            } else {
+                val rows = pendingMapRows.orEmpty()
+                lastReadMapSpec = spec
+                lastReadRows = rows
+                _mapResult.postValue(spec to rows)
+                _mapReading.postValue(false)
+                pendingMapSpec = null
+                pendingMapRows = null
             }
             return
         }
