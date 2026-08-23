@@ -1,8 +1,11 @@
 package com.simpletuner.juken
 
+import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -13,22 +16,20 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
 
     private val viewModel: EcuViewModel by activityViewModels()
 
+    // label -> TextView nilai, dipetakan biar gampang di-update
+    private val statViews = mutableMapOf<String, TextView>()
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val rpm = view.findViewById<TextView>(R.id.rpmValue)
-        val tps = view.findViewById<TextView>(R.id.tpsValue)
-        val afr = view.findViewById<TextView>(R.id.afrValue)
-        val bat = view.findViewById<TextView>(R.id.batValue)
-        val eot = view.findViewById<TextView>(R.id.eotValue)
-        val iat = view.findViewById<TextView>(R.id.iatValue)
-        val base = view.findViewById<TextView>(R.id.baseValue)
-        val inj = view.findViewById<TextView>(R.id.injValue)
-        val ign = view.findViewById<TextView>(R.id.ignValue)
-        val fcorr = view.findViewById<TextView>(R.id.fcorrValue)
+        val rpmValue = view.findViewById<TextView>(R.id.rpmValue)
+        val rpmGauge = view.findViewById<ProgressBar>(R.id.rpmGauge)
+        val identityText = view.findViewById<TextView>(R.id.identityText)
+        val statGrid = view.findViewById<LinearLayout>(R.id.statGrid)
         val rawLog = view.findViewById<TextView>(R.id.rawLogText)
         val rawInput = view.findViewById<EditText>(R.id.rawCommandInput)
-        val identityText = view.findViewById<TextView>(R.id.identityText)
+
+        buildStatGrid(statGrid)
 
         view.findViewById<View>(R.id.startLiveButton).setOnClickListener {
             if (viewModel.connected.value != true) {
@@ -37,10 +38,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
                 viewModel.startLive()
             }
         }
-
-        view.findViewById<View>(R.id.pollLiveButton).setOnClickListener {
-            viewModel.stopLive()
-        }
+        view.findViewById<View>(R.id.pollLiveButton).setOnClickListener { viewModel.stopLive() }
 
         view.findViewById<View>(R.id.sendRawButton).setOnClickListener {
             val cmd = rawInput.text.toString().trim()
@@ -53,24 +51,72 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         }
 
         viewModel.liveFrame.observe(viewLifecycleOwner) { f ->
-            rpm.text = "RPM: ${f.rpm}"
-            tps.text = "TPS: ${f.tpsPercent}%"
-            afr.text = String.format(Locale.US, "AFR: %.1f", f.afr)
-            bat.text = String.format(Locale.US, "Baterai: %.1f V", f.batteryVolt)
-            eot.text = String.format(Locale.US, "Suhu Exhaust: %.1f °C", f.exhaustTemp)
-            iat.text = String.format(Locale.US, "Suhu Intake: %.1f °C", f.intakeTemp)
-            base.text = String.format(Locale.US, "Base Map: %.2f", f.baseMapValue)
-            inj.text = String.format(Locale.US, "Injector Timing: %.2f", f.injectorTiming)
-            ign.text = String.format(Locale.US, "Ignition Timing: %.2f", f.ignitionTiming)
-            fcorr.text = String.format(Locale.US, "Fuel Correction: %.2f", f.fuelCorrection)
+            rpmValue.text = f.rpm.toString()
+            rpmGauge.progress = f.rpm.coerceIn(0, 12000)
+            statViews["TPS"]?.text = "${f.tpsPercent}%"
+            statViews["AFR"]?.text = String.format(Locale.US, "%.1f", f.afr)
+            statViews["Baterai"]?.text = String.format(Locale.US, "%.1f V", f.batteryVolt)
+            statViews["Suhu Exhaust"]?.text = String.format(Locale.US, "%.1f °C", f.exhaustTemp)
+            statViews["Suhu Intake"]?.text = String.format(Locale.US, "%.1f °C", f.intakeTemp)
+            statViews["Base Map"]?.text = String.format(Locale.US, "%.2f", f.baseMapValue)
+            statViews["Inj. Timing"]?.text = String.format(Locale.US, "%.1f", f.injectorTiming)
+            statViews["Ign. Timing"]?.text = String.format(Locale.US, "%.1f", f.ignitionTiming)
         }
 
-        viewModel.rawLog.observe(viewLifecycleOwner) { log ->
-            rawLog.text = log
-        }
-
+        viewModel.rawLog.observe(viewLifecycleOwner) { log -> rawLog.text = log }
         viewModel.ecuIdentity.observe(viewLifecycleOwner) { id ->
-            if (id.isNotBlank()) identityText.text = "Identitas ECU: $id"
+            identityText.text = if (id.isNotBlank()) "ECU: $id" else "ECU: -"
         }
     }
+
+    private fun buildStatGrid(container: LinearLayout) {
+        container.removeAllViews()
+        val labels = listOf(
+            "TPS", "AFR", "Baterai", "Suhu Exhaust",
+            "Suhu Intake", "Base Map", "Inj. Timing", "Ign. Timing"
+        )
+        labels.chunked(2).forEach { pair ->
+            val row = LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.HORIZONTAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { bottomMargin = dp(8) }
+            }
+            pair.forEach { label ->
+                row.addView(statCard(label))
+            }
+            container.addView(row)
+        }
+    }
+
+    private fun statCard(label: String): LinearLayout {
+        val ctx = requireContext()
+        val card = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundResource(R.drawable.bg_ios_card)
+            setPadding(dp(14), dp(12), dp(14), dp(12))
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginEnd = dp(6)
+                marginStart = dp(6)
+            }
+        }
+        val labelView = TextView(ctx).apply {
+            text = label.uppercase()
+            textSize = 11f
+            setTextColor(Color.parseColor("#8E8E93"))
+            letterSpacing = 0.02f
+        }
+        val valueView = TextView(ctx).apply {
+            text = "-"
+            textSize = 20f
+            setTextColor(Color.parseColor("#000000"))
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }
+        card.addView(labelView)
+        card.addView(valueView)
+        statViews[label] = valueView
+        return card
+    }
+
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 }
