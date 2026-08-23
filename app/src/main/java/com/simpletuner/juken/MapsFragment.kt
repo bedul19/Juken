@@ -12,6 +12,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import java.util.Locale
 
 class MapsFragment : Fragment(R.layout.fragment_maps) {
 
@@ -33,12 +34,23 @@ class MapsFragment : Fragment(R.layout.fragment_maps) {
         view.findViewById<View>(R.id.writeBackButton).setOnClickListener { confirmWriteBack() }
 
         viewModel.mapReading.observe(viewLifecycleOwner) { reading ->
-            if (reading) titleText.text = "Membaca dari ECU..."
+            if (reading) {
+                placeholder.visibility = View.VISIBLE
+                vScroll.visibility = View.GONE
+                placeholder.text = "Membaca dari ECU... (baris 0)"
+            }
+        }
+
+        viewModel.mapReadProgress.observe(viewLifecycleOwner) { rowDone ->
+            if (viewModel.mapReading.value == true) {
+                val totalRows = viewModel.lastReadMapSpec?.rows ?: 21
+                placeholder.text = "Membaca dari ECU... (baris $rowDone)"
+            }
         }
 
         viewModel.mapResult.observe(viewLifecycleOwner) { (spec, rows) ->
             titleText.text = "${spec.label} — ${rows.size} baris × ${rows.firstOrNull()?.size ?: 0} kolom"
-            renderTable(table, rows)
+            renderTable(table, rows, spec.isDecimal)
             placeholder.visibility = View.GONE
             vScroll.visibility = View.VISIBLE
         }
@@ -48,13 +60,11 @@ class MapsFragment : Fragment(R.layout.fragment_maps) {
         }
     }
 
-    /** Bangun TableLayout: baris header (perkiraan RPM) + kolom header (Load/TPS %) + sel berwarna. */
-    private fun renderTable(table: TableLayout, rows: List<List<Int>>) {
+    private fun renderTable(table: TableLayout, rows: List<List<Float>>, isDecimal: Boolean) {
         table.removeAllViews()
         if (rows.isEmpty()) return
         val cols = rows[0].size
 
-        // Header row (perkiraan RPM, hanya label visual — bukan dari ECU)
         val rpmStart = 1000
         val rpmStep = if (cols > 1) 11000 / (cols - 1) else 0
         val headerRow = TableRow(table.context)
@@ -69,13 +79,14 @@ class MapsFragment : Fragment(R.layout.fragment_maps) {
             val loadPercent = if (rows.size > 1) 100 - (r * 100 / (rows.size - 1)) else 100
             tr.addView(cellView(table.context, "$loadPercent%", isHeader = true))
             rowValues.forEach { v ->
-                tr.addView(cellView(table.context, v.toString(), isHeader = false, value = v))
+                val text = if (isDecimal) String.format(Locale.US, "%.2f", v) else v.toInt().toString()
+                tr.addView(cellView(table.context, text, isHeader = false, value = v))
             }
             table.addView(tr)
         }
     }
 
-    private fun cellView(context: android.content.Context, text: String, isHeader: Boolean, value: Int = 0): TextView {
+    private fun cellView(context: android.content.Context, text: String, isHeader: Boolean, value: Float = 0f): TextView {
         return TextView(context).apply {
             this.text = text
             gravity = Gravity.CENTER
@@ -96,9 +107,9 @@ class MapsFragment : Fragment(R.layout.fragment_maps) {
         }
     }
 
-    /** Gradasi warna: biru (nilai rendah) -> merah (nilai tinggi), mirip software tuning pada umumnya. */
-    private fun valueColor(value: Int): Int {
-        val norm = (value.coerceIn(0, 255)) / 255f
+    /** Gradasi warna berdasarkan posisi nilai dalam rentang wajar tiap map (bukan skala tetap 0-255). */
+    private fun valueColor(value: Float): Int {
+        val norm = ((value + 30f) / 400f).coerceIn(0f, 1f) // rentang kasar meliputi minus & ratusan
         val hue = 205f - norm * 205f
         return Color.HSVToColor(floatArrayOf(hue, 0.68f, 0.55f))
     }
@@ -128,9 +139,8 @@ class MapsFragment : Fragment(R.layout.fragment_maps) {
         AlertDialog.Builder(requireContext())
             .setTitle("Tulis ulang ${spec.label}?")
             .setMessage(
-                "Ini akan menimpa kalibrasi di ECU dengan data yang baru saja dibaca. " +
-                    "Pastikan kamu sudah menyimpan backup dan memahami risikonya — kalibrasi yang salah " +
-                    "bisa merusak mesin/turbo. Lanjutkan?"
+                "Format command tulis ini BELUM terverifikasi dari sadapan asli (cuma pola baca yang " +
+                    "terkonfirmasi). Pastikan kamu sudah backup dan siap verifikasi manual setelah menulis. Lanjutkan?"
             )
             .setPositiveButton("Ya, tulis") { _, _ -> viewModel.writeBackLastRead() }
             .setNegativeButton("Batal", null)
