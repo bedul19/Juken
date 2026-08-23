@@ -4,45 +4,42 @@ import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
-import android.view.LayoutInflater
+import android.view.Gravity
 import android.view.View
-import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 
 class ConnectFragment : Fragment(R.layout.fragment_connect) {
 
     private val viewModel: EcuViewModel by activityViewModels()
-    private lateinit var adapter: DeviceAdapter
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         val statusText = view.findViewById<TextView>(R.id.statusText)
-        val list = view.findViewById<RecyclerView>(R.id.deviceList)
-        list.layoutManager = LinearLayoutManager(requireContext())
-        adapter = DeviceAdapter { device -> connectTo(device) }
-        list.adapter = adapter
+        val statusDot = view.findViewById<View>(R.id.statusDot)
+        val container = view.findViewById<LinearLayout>(R.id.deviceListContainer)
 
-        view.findViewById<View>(R.id.refreshButton).setOnClickListener { loadPairedDevices() }
+        view.findViewById<View>(R.id.refreshButton).setOnClickListener { loadPairedDevices(container) }
         view.findViewById<View>(R.id.disconnectButton).setOnClickListener { viewModel.disconnect() }
 
         viewModel.connected.observe(viewLifecycleOwner) { connected ->
-            statusText.text = if (connected) "Status: terhubung ke ${viewModel.deviceName.value}" else "Status: belum terhubung"
+            statusText.text = if (connected) "Terhubung ke ${viewModel.deviceName.value}" else "Belum terhubung"
+            statusDot.setBackgroundResource(if (connected) R.drawable.dot_green else R.drawable.dot_gray)
         }
         viewModel.statusMessage.observe(viewLifecycleOwner) { msg ->
             if (msg.isNotBlank()) Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
         }
 
-        loadPairedDevices()
+        loadPairedDevices(container)
     }
 
     private fun hasBtPermission(): Boolean {
@@ -53,7 +50,7 @@ class ConnectFragment : Fragment(R.layout.fragment_connect) {
         return true
     }
 
-    private fun loadPairedDevices() {
+    private fun loadPairedDevices(container: LinearLayout) {
         if (!hasBtPermission()) {
             ActivityCompat.requestPermissions(
                 requireActivity(),
@@ -71,48 +68,70 @@ class ConnectFragment : Fragment(R.layout.fragment_connect) {
             Toast.makeText(requireContext(), "Aktifkan Bluetooth dulu", Toast.LENGTH_SHORT).show()
             return
         }
-        val paired: Set<BluetoothDevice> = try {
-            adapterBt.bondedDevices
-        } catch (e: SecurityException) {
-            emptySet()
-        }
-        adapter.submit(paired.toList())
+        val paired: Set<BluetoothDevice> = try { adapterBt.bondedDevices } catch (e: SecurityException) { emptySet() }
+        renderDeviceList(container, paired.toList())
     }
 
-    private fun connectTo(device: BluetoothDevice) {
-        if (!hasBtPermission()) return
-        viewModel.connect(device)
+    private fun renderDeviceList(container: LinearLayout, devices: List<BluetoothDevice>) {
+        container.removeAllViews()
+        if (devices.isEmpty()) {
+            container.addView(rowView("Tidak ada perangkat ter-pairing", null, isLast = true, clickable = false))
+            return
+        }
+        devices.forEachIndexed { i, device ->
+            val label = try { device.name ?: device.address } catch (e: SecurityException) { device.address }
+            val row = rowView(label, device.address, isLast = i == devices.size - 1, clickable = true)
+            row.setOnClickListener {
+                if (hasBtPermission()) viewModel.connect(device)
+            }
+            container.addView(row)
+        }
     }
+
+    private fun rowView(title: String, subtitle: String?, isLast: Boolean, clickable: Boolean): LinearLayout {
+        val ctx = requireContext()
+        val row = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(16.dp(ctx), 12.dp(ctx), 16.dp(ctx), 12.dp(ctx))
+            if (clickable) {
+                isClickable = true
+                isFocusable = true
+                setBackgroundResource(R.drawable.bg_ios_row)
+            }
+        }
+        val titleView = TextView(ctx).apply {
+            text = title
+            textSize = 17f
+            setTextColor(Color.parseColor("#000000"))
+        }
+        row.addView(titleView)
+        if (subtitle != null) {
+            val subView = TextView(ctx).apply {
+                text = subtitle
+                textSize = 12f
+                setTextColor(Color.parseColor("#8E8E93"))
+            }
+            row.addView(subView)
+        }
+        if (!isLast) {
+            val divider = View(ctx).apply {
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1.dp(ctx))
+                setBackgroundColor(Color.parseColor("#E5E5EA"))
+            }
+            val wrapper = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
+            wrapper.addView(row)
+            wrapper.addView(divider.apply {
+                (layoutParams as LinearLayout.LayoutParams).leftMargin = 16.dp(ctx)
+            })
+            return wrapper
+        }
+        return row
+    }
+
+    private fun Int.dp(ctx: android.content.Context): Int =
+        (this * ctx.resources.displayMetrics.density).toInt()
 
     companion object {
         private const val REQ_BT = 42
     }
-}
-
-private class DeviceAdapter(
-    private val onClick: (BluetoothDevice) -> Unit
-) : RecyclerView.Adapter<DeviceAdapter.VH>() {
-
-    private var items: List<BluetoothDevice> = emptyList()
-
-    fun submit(devices: List<BluetoothDevice>) {
-        items = devices
-        notifyDataSetChanged()
-    }
-
-    class VH(val text: TextView) : RecyclerView.ViewHolder(text)
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
-        val v = LayoutInflater.from(parent.context).inflate(R.layout.item_device, parent, false) as TextView
-        return VH(v)
-    }
-
-    override fun onBindViewHolder(holder: VH, position: Int) {
-        val device = items[position]
-        val label = try { device.name ?: device.address } catch (e: SecurityException) { device.address }
-        holder.text.text = label
-        holder.text.setOnClickListener { onClick(device) }
-    }
-
-    override fun getItemCount() = items.size
 }
