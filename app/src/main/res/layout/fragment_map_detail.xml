@@ -98,15 +98,85 @@
                     android:textColor="@color/ios_label_secondary"
                     android:text="Belum ada data. Tap 'Baca' dulu." />
 
-                <ScrollView
-                    android:id="@+id/mapVScroll"
+                <!-- Grid dengan header beku: baris atas (RPM) + kolom kiri (TPS/Load) diam,
+                     cuma area data yang scroll. Sel data EDITABLE (EditText), tap-ketik langsung. -->
+                <LinearLayout
+                    android:id="@+id/mapGridContainer"
                     android:layout_width="match_parent"
-                    android:layout_height="260dp"
+                    android:layout_height="300dp"
+                    android:orientation="vertical"
                     android:visibility="gone">
-                    <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
-                        <TableLayout android:id="@+id/mapTable" android:layout_width="wrap_content" android:layout_height="wrap_content" />
-                    </HorizontalScrollView>
-                </ScrollView>
+
+                    <!-- Baris 1: pojok + header RPM (scroll horizontal, sinkron dgn data) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/mapCorner"
+                            android:layout_width="64dp"
+                            android:layout_height="40dp"
+                            android:gravity="center"
+                            android:text="TPS\RPM"
+                            android:textSize="9sp"
+                            android:textStyle="bold"
+                            android:background="#F2F2F7"
+                            android:textColor="@color/ios_label_secondary" />
+
+                        <HorizontalScrollView
+                            android:id="@+id/mapHeaderHScroll"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:scrollbars="none">
+                            <LinearLayout
+                                android:id="@+id/mapHeaderRow"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal" />
+                        </HorizontalScrollView>
+                    </LinearLayout>
+
+                    <!-- Baris 2: kolom TPS (scroll vertical, sinkron) + grid data (scroll 2 arah) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:orientation="horizontal">
+
+                        <ScrollView
+                            android:id="@+id/mapTpsVScroll"
+                            android:layout_width="64dp"
+                            android:layout_height="match_parent"
+                            android:scrollbars="none">
+                            <LinearLayout
+                                android:id="@+id/mapTpsColumn"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical" />
+                        </ScrollView>
+
+                        <ScrollView
+                            android:id="@+id/mapDataVScroll"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:scrollbars="none">
+                            <HorizontalScrollView
+                                android:id="@+id/mapDataHScroll"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:scrollbars="none">
+                                <LinearLayout
+                                    android:id="@+id/mapDataGrid"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="vertical" />
+                            </HorizontalScrollView>
+                        </ScrollView>
+                    </LinearLayout>
+                </LinearLayout>
             </LinearLayout>
 
         </LinearLayout>
