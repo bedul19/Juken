@@ -29,5 +29,19 @@ class MoreFragment : Fragment(R.layout.fragment_more) {
             viewModel.stopLogging()
             status.text = "Tidak aktif"
         }
+
+        val crashLogText = view.findViewById<TextView>(R.id.crashLogText)
+        val clearCrashLogButton = view.findViewById<View>(R.id.clearCrashLogButton)
+
+        view.findViewById<View>(R.id.viewCrashLogButton).setOnClickListener {
+            crashLogText.text = JukenApplication.readCrashLog(requireActivity().application)
+            crashLogText.visibility = View.VISIBLE
+            clearCrashLogButton.visibility = View.VISIBLE
+        }
+        clearCrashLogButton.setOnClickListener {
+            JukenApplication.clearCrashLog(requireActivity().application)
+            crashLogText.text = "Log sudah dihapus."
+            Toast.makeText(requireContext(), "Log crash dihapus", Toast.LENGTH_SHORT).show()
+        }
     }
 }
