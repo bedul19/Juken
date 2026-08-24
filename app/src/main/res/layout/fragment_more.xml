@@ -26,6 +26,31 @@
             <Button android:id="@+id/stopLogButton" style="@style/IosButtonDestructive" android:text="Hentikan Logging" />
         </LinearLayout>
 
+        <TextView style="@style/IosSectionHeader" android:text="Debug" android:paddingBottom="6dp" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_ios_card"
+            android:padding="16dp"
+            android:layout_marginBottom="20dp">
+
+            <Button android:id="@+id/viewCrashLogButton" style="@style/IosButtonPrimary" android:backgroundTint="#8E8E93" android:text="Lihat Log Crash Terakhir" android:layout_marginBottom="10dp" />
+            <TextView
+                android:id="@+id/crashLogText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:fontFamily="monospace"
+                android:textSize="10sp"
+                android:textIsSelectable="true"
+                android:textColor="#3A3A3C"
+                android:background="@drawable/bg_ios_inset"
+                android:padding="10dp"
+                android:layout_marginTop="8dp" />
+            <Button android:id="@+id/clearCrashLogButton" style="@style/IosButtonDestructive" android:text="Hapus Log Crash" android:layout_marginTop="10dp" android:visibility="gone" />
+        </LinearLayout>
+
         <TextView style="@style/IosSectionHeader" android:text="Tentang" android:paddingBottom="6dp" />
         <LinearLayout
             android:layout_width="match_parent"
