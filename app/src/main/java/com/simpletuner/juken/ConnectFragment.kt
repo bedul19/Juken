@@ -90,42 +90,54 @@ class ConnectFragment : Fragment(R.layout.fragment_connect) {
 
     private fun rowView(title: String, subtitle: String?, isLast: Boolean, clickable: Boolean): LinearLayout {
         val ctx = requireContext()
-        val row = LinearLayout(ctx).apply {
+        val content = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(16.dp(ctx), 12.dp(ctx), 16.dp(ctx), 12.dp(ctx))
-            if (clickable) {
-                isClickable = true
-                isFocusable = true
-                setBackgroundResource(R.drawable.bg_ios_row)
-            }
         }
         val titleView = TextView(ctx).apply {
             text = title
             textSize = 17f
             setTextColor(Color.parseColor("#000000"))
         }
-        row.addView(titleView)
+        content.addView(titleView)
         if (subtitle != null) {
             val subView = TextView(ctx).apply {
                 text = subtitle
                 textSize = 12f
                 setTextColor(Color.parseColor("#8E8E93"))
             }
-            row.addView(subView)
+            content.addView(subView)
         }
-        if (!isLast) {
-            val divider = View(ctx).apply {
-                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1.dp(ctx))
-                setBackgroundColor(Color.parseColor("#E5E5EA"))
+
+        // PENTING: clickable/background selalu dipasang di objek yang benar-benar
+        // di-return (dan yang nanti ditempeli setOnClickListener oleh pemanggil),
+        // supaya klik gak "kesedot" duluan sama child yang clickable tapi gak punya listener.
+        if (isLast) {
+            if (clickable) {
+                content.isClickable = true
+                content.isFocusable = true
+                content.setBackgroundResource(R.drawable.bg_ios_row)
             }
-            val wrapper = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
-            wrapper.addView(row)
-            wrapper.addView(divider.apply {
-                (layoutParams as LinearLayout.LayoutParams).leftMargin = 16.dp(ctx)
-            })
-            return wrapper
+            return content
         }
-        return row
+
+        val wrapper = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            if (clickable) {
+                isClickable = true
+                isFocusable = true
+                setBackgroundResource(R.drawable.bg_ios_row)
+            }
+        }
+        wrapper.addView(content)
+        val divider = View(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1.dp(ctx)).apply {
+                leftMargin = 16.dp(ctx)
+            }
+            setBackgroundColor(Color.parseColor("#E5E5EA"))
+        }
+        wrapper.addView(divider)
+        return wrapper
     }
 
     private fun Int.dp(ctx: android.content.Context): Int =
