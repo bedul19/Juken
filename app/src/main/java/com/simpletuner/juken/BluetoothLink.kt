@@ -30,23 +30,48 @@ class BluetoothLink(
 
     fun connect(device: BluetoothDevice) {
         executor.execute {
+            var lastError: Exception? = null
+
             try {
-                val uuid = UUID.fromString(EcuProtocol.SPP_UUID)
-                val sock = device.createRfcommSocketToServiceRecord(uuid)
-                sock.connect()
-                socket = sock
-                output = sock.outputStream
-                running = true
-                onConnected()
-                listenLoop(sock)
-            } catch (e: IOException) {
-                onError("Gagal konek: ${e.message}")
-                cleanup()
-            } catch (e: SecurityException) {
-                onError("Izin Bluetooth ditolak: ${e.message}")
-                cleanup()
+                android.bluetooth.BluetoothAdapter.getDefaultAdapter()?.cancelDiscovery()
+            } catch (_: SecurityException) { }
+
+            // Coba beberapa cara connect berurutan — banyak modul BT serial (bukan HP resmi)
+            // gagal di mode "secure" standar dan cuma jalan di salah satu cara ini.
+            val attempts: List<() -> BluetoothSocket> = listOf(
+                { device.createRfcommSocketToServiceRecord(UUID.fromString(EcuProtocol.SPP_UUID)) },
+                { device.createInsecureRfcommSocketToServiceRecord(UUID.fromString(EcuProtocol.SPP_UUID)) },
+                { fallbackChannel1Socket(device) }
+            )
+
+            for ((i, attempt) in attempts.withIndex()) {
+                try {
+                    val sock = attempt()
+                    sock.connect()
+                    socket = sock
+                    output = sock.outputStream
+                    running = true
+                    onConnected()
+                    listenLoop(sock)
+                    return@execute // berhasil, selesai
+                } catch (e: IOException) {
+                    lastError = e
+                } catch (e: SecurityException) {
+                    onError("Izin Bluetooth ditolak: ${e.message}")
+                    cleanup()
+                    return@execute
+                }
             }
+            onError("Gagal konek (semua metode dicoba): ${lastError?.message}")
+            cleanup()
         }
+    }
+
+    /** Fallback terakhir: banyak modul BT klon (HC-05 dst) SPP-nya selalu di channel RFCOMM 1,
+     *  dipanggil lewat reflection karena API ini tidak public di BluetoothDevice. */
+    private fun fallbackChannel1Socket(device: BluetoothDevice): BluetoothSocket {
+        val method = device.javaClass.getMethod("createRfcommSocket", Int::class.javaPrimitiveType)
+        return method.invoke(device, 1) as BluetoothSocket
     }
 
     private fun listenLoop(sock: BluetoothSocket) {
