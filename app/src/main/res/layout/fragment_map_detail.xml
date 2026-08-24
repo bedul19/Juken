@@ -82,6 +82,43 @@
 
             <TextView android:id="@+id/mapReadStatus" style="@style/IosCaption" android:text="" android:paddingBottom="8dp" />
 
+            <!-- Editor sel: tap 1/beberapa sel di tabel buat pilih, lalu Set/+/- di sini -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_ios_card"
+                android:padding="12dp"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:id="@+id/selectedCellLabel"
+                    style="@style/IosCaption"
+                    android:text="Belum ada sel dipilih — tap sel di tabel, atau tap label TPS buat pilih 1 baris" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center_vertical">
+
+                    <EditText
+                        android:id="@+id/cellValueInput"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:hint="nilai"
+                        android:inputType="numberSigned|numberDecimal"
+                        android:background="@drawable/bg_ios_inset"
+                        android:padding="8dp" />
+
+                    <Button android:id="@+id/setValueButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:text="Set" android:textColor="@color/ios_blue" android:background="@android:color/transparent" />
+                    <Button android:id="@+id/addValueButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="+" android:textColor="@color/ios_green" android:background="@android:color/transparent" />
+                    <Button android:id="@+id/subValueButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="−" android:textColor="@color/ios_red" android:background="@android:color/transparent" />
+                </LinearLayout>
+            </LinearLayout>
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
