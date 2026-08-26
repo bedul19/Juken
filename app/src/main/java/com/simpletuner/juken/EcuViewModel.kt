@@ -32,6 +32,13 @@ class EcuViewModel : ViewModel() {
     private val rawLines = ArrayDeque<String>()
 
     private val _mapResult = MutableLiveData<Pair<MapSpec, List<List<Float>>>>()
+
+    // Cache data map per opcode, biar data yang udah dibaca TETAP ADA waktu user
+    // pindah tab lalu balik lagi ke layar map yang sama — gak perlu baca ulang
+    // dari ECU kecuali user tap "Baca" secara eksplisit.
+    private val mapDataCache = mutableMapOf<String, List<List<Float>>>()
+    fun getCachedMapData(opcode: String): List<List<Float>>? = mapDataCache[opcode]
+    fun setCachedMapData(opcode: String, rows: List<List<Float>>) { mapDataCache[opcode] = rows }
     val mapResult: LiveData<Pair<MapSpec, List<List<Float>>>> = _mapResult
 
     private val _mapReading = MutableLiveData(false)
