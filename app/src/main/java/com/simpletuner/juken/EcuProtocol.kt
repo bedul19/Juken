@@ -34,6 +34,25 @@ object EcuProtocol {
     // Param "2" ini konsisten dipakai di sesi asli & cocok dengan field "core" di live data.
     const val MAP_CORE_PARAM = "2"
 
+    // Breakpoint TPS/Load asli (bukan kelipatan rata) — dikonfirmasi dari referensi
+    // aplikasi resmi: 0% ke 5% itu ada 2% di tengah, dst. Total 21 nilai (cocok
+    // dengan 21 baris tiap map).
+    val TPS_BREAKPOINTS = listOf(0, 2, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 100)
+
+    fun loadPercentForRow(row: Int, totalRows: Int): Int =
+        TPS_BREAKPOINTS.getOrElse(row) { if (totalRows > 1) row * 100 / (totalRows - 1) else 0 }
+
+    /** Cari baris (index) dengan breakpoint TPS/Load TERDEKAT ke persen live yang diukur. */
+    fun rowForLoadPercent(loadPercent: Int): Int {
+        var bestIdx = 0
+        var bestDiff = Int.MAX_VALUE
+        TPS_BREAKPOINTS.forEachIndexed { i, bp ->
+            val diff = kotlin.math.abs(bp - loadPercent)
+            if (diff < bestDiff) { bestDiff = diff; bestIdx = i }
+        }
+        return bestIdx
+    }
+
     // Peta kalibrasi. Confidence WRITE_CONFIRMED = jalur yang paling teruji
     // (dipakai + di-ack per baris oleh ECU). Selain itu dikunci read-only
     // di versi simple demi keamanan.
