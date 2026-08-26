@@ -109,7 +109,7 @@ object EcuProtocol {
     /** Kalibrasi voltase sensor MAP -> persen, disalin persis dari APK resmi. */
     /** Format nilai buat dikirim ke ECU — 2 desimal khusus Base Map, integer polos untuk map lain. */
     fun formatValue(v: Float, isDecimal: Boolean): String =
-        if (isDecimal) String.format(java.util.Locale.US, "%.2f", v) else v.toInt().toString()
+        if (isDecimal) String.format(java.util.Locale.US, "%.2f", v) else Math.round(v).toString()
 
     private fun mappingMap(volt: Double): Double = when {
         volt < 0.3 -> (100.0 * volt) / 3.0
