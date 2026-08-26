@@ -60,6 +60,15 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
         title.text = spec.label
         subtitle.text = "${spec.rows} baris × ${spec.cols} kolom"
 
+        // Easy Setting cuma relevan buat Fuel Map (koreksi RPM Low/Mid/High)
+        val easySettingSection = view.findViewById<View>(R.id.easySettingSection)
+        easySettingSection.visibility = if (spec == EcuProtocol.FUEL_MAP) View.VISIBLE else View.GONE
+        if (spec == EcuProtocol.FUEL_MAP) {
+            view.findViewById<View>(R.id.applyEasySettingButton).setOnClickListener {
+                applyEasySetting(view)
+            }
+        }
+
         // Muat data dari cache ViewModel kalau map ini sudah pernah dibaca sebelumnya —
         // jadi gak perlu baca ulang dari ECU tiap masuk layar ini lagi.
         viewModel.getCachedMapData(spec.readOpcode)?.let { cached ->
@@ -148,6 +157,53 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
         }
         selectedLabel.text = "${selectedCells.size} sel diperbarui — belum ditulis ke ECU"
         viewModel.setCachedMapData(spec.readOpcode, currentRows)
+    }
+
+    /**
+     * Easy Setting: terapkan "Nilai +/-" ke SEMUA baris TPS sekaligus, tapi cuma
+     * untuk kolom yang RPM-nya masuk rentang [min,max] tiap level (Low/Mid/High).
+     * Beberapa level bisa dipakai bareng dalam sekali tap.
+     */
+    private fun applyEasySetting(view: View) {
+        if (currentRows.isEmpty()) {
+            Toast.makeText(requireContext(), "Baca atau import data Fuel Map dulu", Toast.LENGTH_SHORT).show()
+            return
+        }
+        fun intOf(id: Int): Int? = view.findViewById<EditText>(id).text.toString().trim().toIntOrNull()
+        fun floatOf(id: Int): Float? = view.findViewById<EditText>(id).text.toString().trim().toFloatOrNull()
+
+        data class Band(val min: Int?, val max: Int?, val value: Float?)
+        val bands = listOf(
+            Band(intOf(R.id.lowMinInput), intOf(R.id.lowMaxInput), floatOf(R.id.lowValueInput)),
+            Band(intOf(R.id.midMinInput), intOf(R.id.midMaxInput), floatOf(R.id.midValueInput)),
+            Band(intOf(R.id.highMinInput), intOf(R.id.highMaxInput), floatOf(R.id.highValueInput))
+        )
+
+        val activeBands = bands.filter { it.min != null && it.max != null && it.value != null && it.value != 0f }
+        if (activeBands.isEmpty()) {
+            Toast.makeText(requireContext(), "Isi minimal 1 'Nilai +/-' (Low/Mid/High) buat diterapkan", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val cols = currentRows[0].size
+        val rpmStart = 1000
+        val rpmStep = 250
+        var changedCells = 0
+
+        for (r in currentRows.indices) {
+            for (c in 0 until cols) {
+                val rpm = rpmStart + c * rpmStep
+                val band = activeBands.firstOrNull { rpm in it.min!!..it.max!! } ?: continue
+                currentRows[r][c] = currentRows[r][c] + band.value!!
+                changedCells++
+            }
+        }
+
+        buildGrid(view)
+        viewModel.setCachedMapData(spec.readOpcode, currentRows)
+        view.findViewById<TextView>(R.id.mapReadStatus).text =
+            "Easy Setting diterapkan ke $changedCells sel — belum ditulis ke ECU"
+        Toast.makeText(requireContext(), "Easy Setting diterapkan ke $changedCells sel", Toast.LENGTH_SHORT).show()
     }
 
     private fun applyPattern(percentText: String, statusView: TextView, placeholder: View, gridContainer: View) {
@@ -274,7 +330,7 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
         val newCellViews = Array(rows) { arrayOfNulls<TextView>(cols) }
 
         currentRows.forEachIndexed { r, _ ->
-            val loadPercent = if (rows > 1) r * 100 / (rows - 1) else 0
+            val loadPercent = EcuProtocol.loadPercentForRow(r, rows)
             val rowLabel = headerCell(ctx, "$loadPercent%")
             rowLabel.isClickable = true
             rowLabel.setOnClickListener { selectWholeRow(r, view) }
