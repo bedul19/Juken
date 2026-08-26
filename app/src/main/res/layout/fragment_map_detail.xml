@@ -82,6 +82,65 @@
 
             <TextView android:id="@+id/mapReadStatus" style="@style/IosCaption" android:text="" android:paddingBottom="8dp" />
 
+            <!-- Easy Setting: cuma dipakai/ditampilkan buat Fuel Map. Set batas RPM tiap
+                 level (Low/Mid/High) + nilai tambahan per level, diterapkan ke SEMUA
+                 baris TPS sekaligus untuk kolom RPM yang masuk rentang itu. -->
+            <LinearLayout
+                android:id="@+id/easySettingSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:layout_marginBottom="8dp">
+
+                <TextView style="@style/IosSectionHeader" android:text="Easy Setting (RPM Low / Mid / High)" android:paddingBottom="6dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_ios_card"
+                    android:padding="12dp">
+
+                    <!-- Header kolom -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingBottom="4dp">
+                        <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="" />
+                        <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Min RPM" style="@style/IosCaption" android:gravity="center" />
+                        <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Max RPM" style="@style/IosCaption" android:gravity="center" />
+                        <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Nilai +/-" style="@style/IosCaption" android:gravity="center" />
+                    </LinearLayout>
+
+                    <!-- Baris Low -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingTop="6dp" android:paddingBottom="6dp">
+                        <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Low" android:textColor="@color/ios_green" android:textStyle="bold" />
+                        <EditText android:id="@+id/lowMinInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="1000" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
+                        <EditText android:id="@+id/lowMaxInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="4250" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
+                        <EditText android:id="@+id/lowValueInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:hint="0" android:inputType="numberSigned|numberDecimal" android:gravity="center" android:background="@drawable/bg_ios_inset" />
+                    </LinearLayout>
+
+                    <!-- Baris Mid -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingBottom="6dp">
+                        <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Mid" android:textColor="@color/ios_orange" android:textStyle="bold" />
+                        <EditText android:id="@+id/midMinInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="4500" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
+                        <EditText android:id="@+id/midMaxInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="8250" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
+                        <EditText android:id="@+id/midValueInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:hint="0" android:inputType="numberSigned|numberDecimal" android:gravity="center" android:background="@drawable/bg_ios_inset" />
+                    </LinearLayout>
+
+                    <!-- Baris High -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingBottom="10dp">
+                        <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="High" android:textColor="@color/ios_red" android:textStyle="bold" />
+                        <EditText android:id="@+id/highMinInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="8500" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
+                        <EditText android:id="@+id/highMaxInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="16000" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
+                        <EditText android:id="@+id/highValueInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:hint="0" android:inputType="numberSigned|numberDecimal" android:gravity="center" android:background="@drawable/bg_ios_inset" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/applyEasySettingButton"
+                        style="@style/IosButtonPrimary"
+                        android:text="Terapkan Easy Setting ke Semua Baris TPS" />
+                </LinearLayout>
+            </LinearLayout>
+
             <!-- Editor sel: tap 1/beberapa sel di tabel buat pilih, lalu Set/+/- di sini -->
             <LinearLayout
                 android:layout_width="match_parent"
