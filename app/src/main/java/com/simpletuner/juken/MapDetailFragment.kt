@@ -60,6 +60,16 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
         title.text = spec.label
         subtitle.text = "${spec.rows} baris × ${spec.cols} kolom"
 
+        // Muat data dari cache ViewModel kalau map ini sudah pernah dibaca sebelumnya —
+        // jadi gak perlu baca ulang dari ECU tiap masuk layar ini lagi.
+        viewModel.getCachedMapData(spec.readOpcode)?.let { cached ->
+            currentRows = cached.map { it.toMutableList() }.toMutableList()
+            buildGrid(view)
+            placeholder.visibility = View.GONE
+            gridContainer.visibility = View.VISIBLE
+            readStatus.text = "Data tersimpan dari sesi sebelumnya (tap Baca buat refresh dari ECU)"
+        }
+
         setupScrollSync(view)
 
         view.findViewById<View>(R.id.backButton).setOnClickListener { parentFragmentManager.popBackStack() }
@@ -104,6 +114,7 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
             buildGrid(view)
             placeholder.visibility = View.GONE
             gridContainer.visibility = View.VISIBLE
+            viewModel.setCachedMapData(spec.readOpcode, currentRows)
         }
         viewModel.writeAck.observe(viewLifecycleOwner) {
             Toast.makeText(requireContext(), "ACK diterima dari ECU", Toast.LENGTH_SHORT).show()
@@ -136,6 +147,7 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
             updateCellView(r, c, newVal, selected = true)
         }
         selectedLabel.text = "${selectedCells.size} sel diperbarui — belum ditulis ke ECU"
+        viewModel.setCachedMapData(spec.readOpcode, currentRows)
     }
 
     private fun applyPattern(percentText: String, statusView: TextView, placeholder: View, gridContainer: View) {
@@ -154,6 +166,7 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
         placeholder.visibility = View.GONE
         gridContainer.visibility = View.VISIBLE
         statusView.text = "Preview pattern ${if (percent >= 0) "+" else ""}$percent% diterapkan — BELUM ditulis ke ECU"
+        viewModel.setCachedMapData(spec.readOpcode, currentRows)
     }
 
     private fun confirmWrite() {
@@ -234,6 +247,7 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
             view.findViewById<View>(R.id.mapGridContainer).visibility = View.VISIBLE
             view.findViewById<TextView>(R.id.mapReadStatus).text = "Data hasil import (${rows.size} baris) — belum ditulis ke ECU"
             buildGrid(view)
+            viewModel.setCachedMapData(spec.readOpcode, currentRows)
             Toast.makeText(requireContext(), "Berhasil import", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Toast.makeText(requireContext(), "Gagal import: ${e.message}", Toast.LENGTH_LONG).show()
@@ -310,7 +324,7 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
     }
 
     private fun formatCellValue(v: Float): String =
-        if (spec.isDecimal) String.format(Locale.US, "%.2f", v) else v.toInt().toString()
+        if (spec.isDecimal) String.format(Locale.US, "%.2f", v) else Math.round(v).toString()
 
     private fun toggleCellSelection(row: Int, col: Int, rootView: View) {
         val key = row to col
