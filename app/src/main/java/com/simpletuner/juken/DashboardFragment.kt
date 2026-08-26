@@ -1,13 +1,21 @@
 package com.simpletuner.juken
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Color
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import android.os.Bundle
+import android.os.Looper
 import android.view.View
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import java.util.Locale
@@ -19,6 +27,23 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
     // label -> TextView nilai, dipetakan biar gampang di-update
     private val statViews = mutableMapOf<String, TextView>()
 
+    private var locationManager: LocationManager? = null
+    private var speedValueView: TextView? = null
+    private var gpsStatusView: TextView? = null
+
+    private val locationListener = LocationListener { location ->
+        onLocationUpdate(location)
+    }
+
+    private val locationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                startLocationUpdates()
+            } else {
+                gpsStatusView?.text = "Izin lokasi ditolak"
+            }
+        }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -28,6 +53,8 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         val statGrid = view.findViewById<LinearLayout>(R.id.statGrid)
         val rawLog = view.findViewById<TextView>(R.id.rawLogText)
         val rawLogScroll = view.findViewById<android.widget.ScrollView>(R.id.rawLogScroll)
+        speedValueView = view.findViewById(R.id.speedValue)
+        gpsStatusView = view.findViewById(R.id.gpsStatusText)
 
         // Kotak debug ini ScrollView di dalam ScrollView (halaman). Tanpa ini, gesture
         // geser di dalam kotak "kesedot" duluan sama scroll halaman luar, jadi
@@ -40,6 +67,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         val rawInput = view.findViewById<EditText>(R.id.rawCommandInput)
 
         buildStatGrid(statGrid)
+        setupSpeedMonitor()
 
         view.findViewById<View>(R.id.startLiveButton).setOnClickListener {
             if (viewModel.connected.value != true) {
@@ -132,4 +160,68 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
     }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+
+    // ---------------- GPS Speed Monitor ----------------
+
+    private fun setupSpeedMonitor() {
+        locationManager = requireContext().getSystemService(android.content.Context.LOCATION_SERVICE) as? LocationManager
+        val hasPermission = ContextCompat.checkSelfPermission(
+            requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (hasPermission) {
+            startLocationUpdates()
+        } else {
+            gpsStatusView?.text = "Tap buat izinkan GPS"
+            speedValueView?.setOnClickListener {
+                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+            gpsStatusView?.setOnClickListener {
+                locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+        }
+    }
+
+    private fun startLocationUpdates() {
+        val lm = locationManager ?: return
+        val hasPermission = ContextCompat.checkSelfPermission(
+            requireContext(), Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!hasPermission) return
+
+        val provider = when {
+            lm.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
+            lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
+            else -> null
+        }
+
+        if (provider == null) {
+            gpsStatusView?.text = "GPS nonaktif — cek pengaturan lokasi HP"
+            return
+        }
+
+        try {
+            lm.requestLocationUpdates(provider, 1000L, 0f, locationListener, Looper.getMainLooper())
+            gpsStatusView?.text = "Mencari sinyal GPS..."
+        } catch (e: SecurityException) {
+            gpsStatusView?.text = "Izin lokasi ditolak"
+        }
+    }
+
+    private fun onLocationUpdate(location: Location) {
+        val speedKmh = if (location.hasSpeed()) location.speed * 3.6f else 0f
+        speedValueView?.text = Math.round(speedKmh).toString()
+        gpsStatusView?.text = if (location.hasSpeed()) {
+            "Akurasi ±${location.accuracy.toInt()}m"
+        } else {
+            "Menunggu data kecepatan..."
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        try {
+            locationManager?.removeUpdates(locationListener)
+        } catch (_: SecurityException) { }
+    }
 }
