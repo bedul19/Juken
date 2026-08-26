@@ -246,7 +246,7 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
         val cols = currentRows[0].size
         val rows = currentRows.size
         val rpmStart = 1000
-        val rpmStep = if (cols > 1) 11000 / (cols - 1) else 0
+        val rpmStep = 250 // dikonfirmasi user: 1000, 1250, 1500 ... 16000
 
         val headerRow = view.findViewById<LinearLayout>(R.id.mapHeaderRow)
         val tpsColumn = view.findViewById<LinearLayout>(R.id.mapTpsColumn)
@@ -260,7 +260,7 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
         val newCellViews = Array(rows) { arrayOfNulls<TextView>(cols) }
 
         currentRows.forEachIndexed { r, _ ->
-            val loadPercent = if (rows > 1) 100 - (r * 100 / (rows - 1)) else 100
+            val loadPercent = if (rows > 1) r * 100 / (rows - 1) else 0
             val rowLabel = headerCell(ctx, "$loadPercent%")
             rowLabel.isClickable = true
             rowLabel.setOnClickListener { selectWholeRow(r, view) }
