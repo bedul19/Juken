@@ -79,7 +79,7 @@
         android:background="@drawable/bg_ios_card"
         android:padding="12dp">
 
-        <ScrollView android:layout_width="match_parent" android:layout_height="160dp">
+        <ScrollView android:id="@+id/rawLogScroll" android:layout_width="match_parent" android:layout_height="160dp">
             <TextView
                 android:id="@+id/rawLogText"
                 android:layout_width="match_parent"
