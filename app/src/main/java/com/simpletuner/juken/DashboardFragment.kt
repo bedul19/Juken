@@ -27,6 +27,16 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         val identityText = view.findViewById<TextView>(R.id.identityText)
         val statGrid = view.findViewById<LinearLayout>(R.id.statGrid)
         val rawLog = view.findViewById<TextView>(R.id.rawLogText)
+        val rawLogScroll = view.findViewById<android.widget.ScrollView>(R.id.rawLogScroll)
+
+        // Kotak debug ini ScrollView di dalam ScrollView (halaman). Tanpa ini, gesture
+        // geser di dalam kotak "kesedot" duluan sama scroll halaman luar, jadi
+        // kelihatan kayak gak bisa digeser padahal isinya panjang.
+        rawLogScroll.setOnTouchListener { v, event ->
+            v.parent.requestDisallowInterceptTouchEvent(true)
+            v.onTouchEvent(event)
+            true
+        }
         val rawInput = view.findViewById<EditText>(R.id.rawCommandInput)
 
         buildStatGrid(statGrid)
@@ -63,7 +73,10 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
             statViews["Ign. Timing"]?.text = String.format(Locale.US, "%.1f", f.ignitionTiming)
         }
 
-        viewModel.rawLog.observe(viewLifecycleOwner) { log -> rawLog.text = log }
+        viewModel.rawLog.observe(viewLifecycleOwner) { log ->
+            rawLog.text = log
+            rawLogScroll.post { rawLogScroll.fullScroll(android.view.View.FOCUS_DOWN) }
+        }
         viewModel.ecuIdentity.observe(viewLifecycleOwner) { id ->
             identityText.text = if (id.isNotBlank()) "ECU: $id" else "ECU: -"
         }
