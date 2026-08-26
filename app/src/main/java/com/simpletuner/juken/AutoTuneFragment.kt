@@ -109,7 +109,7 @@ class AutoTuneFragment : Fragment(R.layout.fragment_autotune) {
     /** Sumbu baris (Load%) HARUS sama dengan cara render tabel Fuel Map di MapDetailFragment (0% di atas). */
     private fun loadToRow(tpsPercent: Int): Int {
         val loadPercent = tpsPercent.coerceIn(0, 100)
-        return (loadPercent * (spec.rows - 1) / 100.0).toInt().coerceIn(0, spec.rows - 1)
+        return EcuProtocol.rowForLoadPercent(loadPercent)
     }
 
     /** Sumbu kolom (RPM) HARUS sama dengan asumsi rpmStart/rpmStep di MapDetailFragment. */
@@ -160,7 +160,7 @@ class AutoTuneFragment : Fragment(R.layout.fragment_autotune) {
 
         suggested.forEachIndexed { r, row ->
             val tr = TableRow(table.context)
-            val loadPercent = if (suggested.size > 1) r * 100 / (suggested.size - 1) else 0
+            val loadPercent = EcuProtocol.loadPercentForRow(r, suggested.size)
             tr.addView(cell("$loadPercent%", true, 0f, 0f))
             row.forEachIndexed { c, newVal ->
                 val oldVal = baseline.getOrNull(r)?.getOrNull(c) ?: newVal
