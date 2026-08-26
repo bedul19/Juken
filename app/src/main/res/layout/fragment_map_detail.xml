@@ -137,7 +137,10 @@
                     <Button
                         android:id="@+id/applyEasySettingButton"
                         style="@style/IosButtonPrimary"
-                        android:text="Terapkan Easy Setting ke Semua Baris TPS" />
+                        android:layout_height="wrap_content"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:text="Terapkan Easy Setting" />
                 </LinearLayout>
             </LinearLayout>
 
