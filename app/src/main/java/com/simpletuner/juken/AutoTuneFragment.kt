@@ -106,16 +106,16 @@ class AutoTuneFragment : Fragment(R.layout.fragment_autotune) {
         countAfr = Array(spec.rows) { IntArray(spec.cols) }
     }
 
-    /** Sumbu baris (Load%) HARUS sama dengan cara render tabel Fuel Map di MapDetailFragment. */
+    /** Sumbu baris (Load%) HARUS sama dengan cara render tabel Fuel Map di MapDetailFragment (0% di atas). */
     private fun loadToRow(tpsPercent: Int): Int {
         val loadPercent = tpsPercent.coerceIn(0, 100)
-        return ((100 - loadPercent) * (spec.rows - 1) / 100.0).toInt().coerceIn(0, spec.rows - 1)
+        return (loadPercent * (spec.rows - 1) / 100.0).toInt().coerceIn(0, spec.rows - 1)
     }
 
     /** Sumbu kolom (RPM) HARUS sama dengan asumsi rpmStart/rpmStep di MapDetailFragment. */
     private fun rpmToCol(rpm: Int): Int {
         val rpmStart = 1000
-        val rpmStep = 11000 / (spec.cols - 1)
+        val rpmStep = 250
         return ((rpm - rpmStart).toFloat() / rpmStep).toInt().coerceIn(0, spec.cols - 1)
     }
 
@@ -151,7 +151,7 @@ class AutoTuneFragment : Fragment(R.layout.fragment_autotune) {
         if (suggested.isEmpty()) return
         val cols = suggested[0].size
         val rpmStart = 1000
-        val rpmStep = if (cols > 1) 11000 / (cols - 1) else 0
+        val rpmStep = 250
 
         val header = TableRow(table.context)
         header.addView(cell("Load\\RPM", true, 0f, 0f))
@@ -160,7 +160,7 @@ class AutoTuneFragment : Fragment(R.layout.fragment_autotune) {
 
         suggested.forEachIndexed { r, row ->
             val tr = TableRow(table.context)
-            val loadPercent = if (suggested.size > 1) 100 - (r * 100 / (suggested.size - 1)) else 100
+            val loadPercent = if (suggested.size > 1) r * 100 / (suggested.size - 1) else 0
             tr.addView(cell("$loadPercent%", true, 0f, 0f))
             row.forEachIndexed { c, newVal ->
                 val oldVal = baseline.getOrNull(r)?.getOrNull(c) ?: newVal
