@@ -138,6 +138,15 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
 
         dataHScroll.setOnScrollChangeListener { _, scrollX, _, _, _ -> headerHScroll.scrollTo(scrollX, 0) }
         dataVScroll.setOnScrollChangeListener { _, _, scrollY, _, _ -> tpsVScroll.scrollTo(0, scrollY) }
+
+        // Grid data ini ScrollView DI DALAM ScrollView halaman — tanpa ini, gesture
+        // geser vertikal di dalam tabel "kesedot" duluan sama scroll halaman luar,
+        // jadi kelihatan kayak mentok padahal isinya masih panjang ke bawah.
+        dataVScroll.setOnTouchListener { v, event ->
+            v.parent.requestDisallowInterceptTouchEvent(true)
+            v.onTouchEvent(event)
+            true
+        }
     }
 
     private fun applyToSelected(valueInput: EditText, selectedLabel: TextView, op: (old: Float, input: Float) -> Float) {
