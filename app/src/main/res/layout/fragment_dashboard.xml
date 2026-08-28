@@ -76,6 +76,12 @@
                 style="@style/IosCaption"
                 android:text="Mencari sinyal GPS..."
                 android:textSize="9sp" />
+
+            <TextView
+                android:id="@+id/speedMaxAvgText"
+                style="@style/IosCaption"
+                android:textSize="9sp"
+                android:text="Max: 0 · Rata-rata: 0" />
         </LinearLayout>
     </LinearLayout>
 
