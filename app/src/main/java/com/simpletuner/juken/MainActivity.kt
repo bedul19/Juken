@@ -45,4 +45,12 @@ class MainActivity : AppCompatActivity() {
             .addToBackStack("mapDetail")
             .commit()
     }
+
+    /** Dipanggil dari MoreFragment buat buka layar Pengaturan ECU. */
+    fun openEcuSettings() {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.fragmentContainer, EcuSettingsFragment())
+            .addToBackStack("ecuSettings")
+            .commit()
+    }
 }
