@@ -12,6 +12,11 @@ import java.util.Locale
 
 class EcuViewModel : ViewModel() {
 
+    // Statistik kecepatan GPS — persisten selama sesi aplikasi (gak reset tiap pindah tab)
+    var maxSpeedKmh = 0f
+    var speedSum = 0.0
+    var speedSampleCount = 0
+
     private val _connected = MutableLiveData(false)
     val connected: LiveData<Boolean> = _connected
 
@@ -74,6 +79,7 @@ class EcuViewModel : ViewModel() {
             _connected.postValue(false)
             _statusMessage.postValue("Terputus dari ECU")
             streaming = false
+            stopTpsCalibrationMonitor()
         },
         onConnected = {
             _connected.postValue(true)
@@ -102,6 +108,73 @@ class EcuViewModel : ViewModel() {
     fun fetchIdentity() {
         appendRaw("» TX: 1617")
         link.send("1617")
+    }
+
+    // ==================== Pengaturan ECU (dari aplikasi resmi) ====================
+
+    /** RPM Limiter — command 3605;<rpm>, rentang 5000-16000 kelipatan 100. */
+    fun setLimiter(rpm: Int) {
+        val clamped = rpm.coerceIn(5000, 16000).let { it - (it % 100) }
+        appendRaw("» TX: 3605;$clamped (RPM Limiter)")
+        link.send("3605;$clamped")
+    }
+
+    private val _tpsCalibration = MutableLiveData<Triple<Int, Int, Int>>() // (raw_sekarang, raw_close, raw_open)
+    val tpsCalibration: LiveData<Triple<Int, Int, Int>> = _tpsCalibration
+    private var tpsCalibTimer: java.util.Timer? = null
+
+    /** Mulai poll 4601 berkala buat monitor kalibrasi TPS real-time. */
+    fun startTpsCalibrationMonitor() {
+        stopTpsCalibrationMonitor()
+        tpsCalibTimer = java.util.Timer().apply {
+            scheduleAtFixedRate(object : java.util.TimerTask() {
+                override fun run() { link.send("4601") }
+            }, 0, 500)
+        }
+    }
+
+    fun stopTpsCalibrationMonitor() {
+        tpsCalibTimer?.cancel()
+        tpsCalibTimer = null
+    }
+
+    /** Simpan posisi throttle SEKARANG sebagai titik Close (TPS 0%) — command 3612. */
+    fun saveTpsClose() {
+        appendRaw("» TX: 3612 (simpan kalibrasi Close/0%)")
+        link.send("3612")
+    }
+
+    /** Simpan posisi throttle SEKARANG sebagai titik Open/WOT (TPS 100%) — command 3613. */
+    fun saveTpsOpen() {
+        appendRaw("» TX: 3613 (simpan kalibrasi Open/100%)")
+        link.send("3613")
+    }
+
+    /** Jet Fuel: persen tambahan bensin saat gas disentak, 4 level — command 360B. */
+    fun setJetFuel(slow: Int, slowMedium: Int, mediumFast: Int, fast: Int) {
+        val cmd = "360B;$slow;$slowMedium;$mediumFast;$fast"
+        appendRaw("» TX: $cmd (Jet Fuel)")
+        link.send(cmd)
+    }
+
+    /** Jet Fuel TPS Rate: ambang kecepatan bukaan gas (%/detik), 3 level — command 360C. */
+    fun setJetFuelTpsRate(slow: Int, slowMedium: Int, fast: Int) {
+        val cmd = "360C;$slow;$slowMedium;$fast"
+        appendRaw("» TX: $cmd (Jet Fuel TPS Rate)")
+        link.send(cmd)
+    }
+
+    /** Suhu nyala kipas radiator — command 361A;<suhu×10> (mis. 95.5°C -> 955). */
+    fun setFanTemp(tempCelsius: Float) {
+        val scaled = Math.round(tempCelsius * 10)
+        appendRaw("» TX: 361A;$scaled (Fan Temp ${tempCelsius}°C)")
+        link.send("361A;$scaled")
+    }
+
+    /** Factory Reset — command 260C, TIDAK BISA DIBATALKAN. Selalu konfirmasi di UI dulu. */
+    fun factoryReset() {
+        appendRaw("» TX: 260C (FACTORY RESET)")
+        link.send("260C")
     }
 
     /** Mulai live stream: langsung kirim 160A (sesuai APK resmi BRT, tanpa handshake). */
@@ -201,6 +274,15 @@ class EcuViewModel : ViewModel() {
 
         if (trimmed.startsWith("9616;")) {
             _ecuIdentity.postValue(trimmed.removePrefix("9616;").trim())
+            return
+        }
+
+        // Balasan poll kalibrasi TPS: "A601;raw_sekarang;raw_close;raw_open"
+        if (trimmed.startsWith("A601;")) {
+            val parts = trimmed.removePrefix("A601;").split(";").mapNotNull { it.toIntOrNull() }
+            if (parts.size >= 3) {
+                _tpsCalibration.postValue(Triple(parts[0], parts[1], parts[2]))
+            }
             return
         }
 
