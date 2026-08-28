@@ -15,6 +15,10 @@ class MoreFragment : Fragment(R.layout.fragment_more) {
         super.onViewCreated(view, savedInstanceState)
         val status = view.findViewById<TextView>(R.id.loggingStatus)
 
+        view.findViewById<View>(R.id.ecuSettingsRow).setOnClickListener {
+            (activity as? MainActivity)?.openEcuSettings()
+        }
+
         view.findViewById<View>(R.id.startLogButton).setOnClickListener {
             if (viewModel.connected.value != true) {
                 Toast.makeText(requireContext(), "Hubungkan ke ECU dulu", Toast.LENGTH_SHORT).show()
