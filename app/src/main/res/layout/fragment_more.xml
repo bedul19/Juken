@@ -12,6 +12,23 @@
 
         <TextView style="@style/IosLargeTitle" android:text="More" android:paddingBottom="16dp" />
 
+        <TextView style="@style/IosSectionHeader" android:text="ECU" android:paddingBottom="6dp" />
+        <LinearLayout
+            android:id="@+id/ecuSettingsRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_ios_card"
+            android:padding="16dp"
+            android:layout_marginBottom="20dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" style="@style/IosRowTitle" android:text="Pengaturan ECU (Limiter, TPS, Jet Fuel, dll)" />
+            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_chevron_right" />
+        </LinearLayout>
+
         <TextView style="@style/IosSectionHeader" android:text="Logging" android:paddingBottom="6dp" />
         <LinearLayout
             android:layout_width="match_parent"
@@ -59,7 +76,7 @@
             android:background="@drawable/bg_ios_card"
             android:padding="16dp">
 
-            <TextView style="@style/IosRowTitle" android:text="Simple Juken Tuner" android:paddingBottom="4dp" />
+            <TextView style="@style/IosRowTitle" android:text="EXU TUNER pro" android:paddingBottom="4dp" />
             <TextView style="@style/IosCaption" android:text="Dibangun dari analisa protokol resmi BRT (Juken 5B TR-HISTORY). Fitur write masih perlu diverifikasi manual — selalu backup sebelum menulis kalibrasi." />
         </LinearLayout>
 
