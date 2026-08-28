@@ -67,6 +67,7 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
             view.findViewById<View>(R.id.applyEasySettingButton).setOnClickListener {
                 applyEasySetting(view)
             }
+            setupEasySettingRpmPickers(view)
         }
 
         // Muat data dari cache ViewModel kalau map ini sudah pernah dibaca sebelumnya —
@@ -140,12 +141,13 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
         dataVScroll.setOnScrollChangeListener { _, _, scrollY, _, _ -> tpsVScroll.scrollTo(0, scrollY) }
 
         // Grid data ini ScrollView DI DALAM ScrollView halaman — tanpa ini, gesture
-        // geser vertikal di dalam tabel "kesedot" duluan sama scroll halaman luar,
-        // jadi kelihatan kayak mentok padahal isinya masih panjang ke bawah.
+        // geser vertikal di dalam tabel "kesedot" duluan sama scroll halaman luar.
+        // PENTING: return false di sini (bukan true), biar ScrollView-nya sendiri yang
+        // tetap menangani gesture scroll secara normal — kita cuma "kunci" biar parent
+        // gak ikut nyolong touch-nya, bukan gantiin logic scroll bawaan Android.
         dataVScroll.setOnTouchListener { v, event ->
             v.parent.requestDisallowInterceptTouchEvent(true)
-            v.onTouchEvent(event)
-            true
+            false
         }
     }
 
@@ -168,24 +170,80 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
         viewModel.setCachedMapData(spec.readOpcode, currentRows)
     }
 
+    /** Pilihan RPM buat picker Min (Mid/High): 3000, 3250, 3500 ... 16000. */
+    private val rpmPickerValues: List<Int> by lazy { (3000..16000 step 250).toList() }
+
+    /** Setup tap-to-pick buat Mid-Min & High-Min, plus cascading auto-update Low-Max & Mid-Max. */
+    private fun setupEasySettingRpmPickers(view: View) {
+        val midMinValue = view.findViewById<TextView>(R.id.midMinValue)
+        val highMinValue = view.findViewById<TextView>(R.id.highMinValue)
+        val lowMaxValue = view.findViewById<TextView>(R.id.lowMaxValue)
+        val midMaxValue = view.findViewById<TextView>(R.id.midMaxValue)
+
+        fun recomputeCascade() {
+            val midMin = midMinValue.text.toString().toIntOrNull() ?: return
+            val highMin = highMinValue.text.toString().toIntOrNull() ?: return
+            lowMaxValue.text = (midMin - 250).toString()
+            midMaxValue.text = (highMin - 250).toString()
+        }
+
+        midMinValue.setOnClickListener {
+            showRpmPickerDialog(midMinValue.text.toString().toIntOrNull() ?: 4500) { picked ->
+                midMinValue.text = picked.toString()
+                recomputeCascade()
+            }
+        }
+        highMinValue.setOnClickListener {
+            showRpmPickerDialog(highMinValue.text.toString().toIntOrNull() ?: 8500) { picked ->
+                highMinValue.text = picked.toString()
+                recomputeCascade()
+            }
+        }
+
+        recomputeCascade() // hitung nilai awal (default 4250 / 8250) biar konsisten dari awal
+    }
+
+    private fun showRpmPickerDialog(current: Int, onPicked: (Int) -> Unit) {
+        val ctx = requireContext()
+        val picker = android.widget.NumberPicker(ctx).apply {
+            minValue = 0
+            maxValue = rpmPickerValues.size - 1
+            displayedValues = rpmPickerValues.map { it.toString() }.toTypedArray()
+            value = rpmPickerValues.indexOf(current).let { if (it >= 0) it else 0 }
+            wrapSelectorWheel = false
+        }
+        val container = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(dp(16), dp(16), dp(16), dp(16))
+            addView(picker)
+        }
+        AlertDialog.Builder(ctx)
+            .setTitle("Pilih RPM")
+            .setView(container)
+            .setPositiveButton("Pilih") { _, _ -> onPicked(rpmPickerValues[picker.value]) }
+            .setNegativeButton("Batal", null)
+            .show()
+    }
+
     /**
-     * Easy Setting: terapkan "Nilai +/-" ke SEMUA baris TPS sekaligus, tapi cuma
-     * untuk kolom yang RPM-nya masuk rentang [min,max] tiap level (Low/Mid/High).
-     * Beberapa level bisa dipakai bareng dalam sekali tap.
+     * Easy Setting: terapkan "Nilai +/-" ke baris TPS yang masuk rentang filter
+     * (atau semua baris kalau filter dikosongkan), tapi cuma untuk kolom yang
+     * RPM-nya masuk rentang [min,max] tiap level (Low/Mid/High).
      */
     private fun applyEasySetting(view: View) {
         if (currentRows.isEmpty()) {
             Toast.makeText(requireContext(), "Baca atau import data Fuel Map dulu", Toast.LENGTH_SHORT).show()
             return
         }
-        fun intOf(id: Int): Int? = view.findViewById<EditText>(id).text.toString().trim().toIntOrNull()
+        fun textOf(id: Int): Int? = view.findViewById<TextView>(id).text.toString().trim().toIntOrNull()
         fun floatOf(id: Int): Float? = view.findViewById<EditText>(id).text.toString().trim().toFloatOrNull()
 
         data class Band(val min: Int?, val max: Int?, val value: Float?)
         val bands = listOf(
-            Band(intOf(R.id.lowMinInput), intOf(R.id.lowMaxInput), floatOf(R.id.lowValueInput)),
-            Band(intOf(R.id.midMinInput), intOf(R.id.midMaxInput), floatOf(R.id.midValueInput)),
-            Band(intOf(R.id.highMinInput), intOf(R.id.highMaxInput), floatOf(R.id.highValueInput))
+            Band(textOf(R.id.lowMinValue), textOf(R.id.lowMaxValue), floatOf(R.id.lowValueInput)),
+            Band(textOf(R.id.midMinValue), textOf(R.id.midMaxValue), floatOf(R.id.midValueInput)),
+            Band(textOf(R.id.highMinValue), textOf(R.id.highMaxValue), floatOf(R.id.highValueInput))
         )
 
         val activeBands = bands.filter { it.min != null && it.max != null && it.value != null && it.value != 0f }
@@ -194,12 +252,18 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
             return
         }
 
+        val tpsMin = view.findViewById<EditText>(R.id.tpsMinInput).text.toString().trim().toIntOrNull() ?: 0
+        val tpsMax = view.findViewById<EditText>(R.id.tpsMaxInput).text.toString().trim().toIntOrNull() ?: 100
+
         val cols = currentRows[0].size
         val rpmStart = 1000
         val rpmStep = 250
         var changedCells = 0
 
         for (r in currentRows.indices) {
+            val rowLoadPercent = EcuProtocol.loadPercentForRow(r, currentRows.size)
+            if (rowLoadPercent < tpsMin || rowLoadPercent > tpsMax) continue
+
             for (c in 0 until cols) {
                 val rpm = rpmStart + c * rpmStep
                 val band = activeBands.firstOrNull { rpm in it.min!!..it.max!! } ?: continue
@@ -211,7 +275,7 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
         buildGrid(view)
         viewModel.setCachedMapData(spec.readOpcode, currentRows)
         view.findViewById<TextView>(R.id.mapReadStatus).text =
-            "Easy Setting diterapkan ke $changedCells sel — belum ditulis ke ECU"
+            "Easy Setting diterapkan ke $changedCells sel (TPS $tpsMin%-$tpsMax%) — belum ditulis ke ECU"
         Toast.makeText(requireContext(), "Easy Setting diterapkan ke $changedCells sel", Toast.LENGTH_SHORT).show()
     }
 
@@ -325,7 +389,7 @@ class MapDetailFragment : Fragment(R.layout.fragment_map_detail) {
         val cols = currentRows[0].size
         val rows = currentRows.size
         val rpmStart = 1000
-        val rpmStep = 250 // dikonfirmasi user: 1000, 1250, 1500 ... 16000
+        val rpmStep = 15000 / (cols - 1) // dinamis: 61 kolom -> 250, 31 kolom -> 500, selalu 1000-16000
 
         val headerRow = view.findViewById<LinearLayout>(R.id.mapHeaderRow)
         val tpsColumn = view.findViewById<LinearLayout>(R.id.mapTpsColumn)
