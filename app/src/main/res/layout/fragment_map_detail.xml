@@ -102,6 +102,9 @@
                     android:background="@drawable/bg_ios_card"
                     android:padding="12dp">
 
+                    <TextView style="@style/IosCaption" android:paddingBottom="8dp"
+                        android:text="Tap kotak Min RPM (Mid/High) buat pilih dari daftar. Max RPM otomatis nyambung ke level di atasnya." />
+
                     <!-- Header kolom -->
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingBottom="4dp">
                         <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="" />
@@ -110,28 +113,39 @@
                         <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Nilai +/-" style="@style/IosCaption" android:gravity="center" />
                     </LinearLayout>
 
-                    <!-- Baris Low -->
+                    <!-- Baris Low: Min selalu 1000 (awal map), Max ngikut Mid-Min -->
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingTop="6dp" android:paddingBottom="6dp">
                         <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Low" android:textColor="@color/ios_green" android:textStyle="bold" />
-                        <EditText android:id="@+id/lowMinInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="1000" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
-                        <EditText android:id="@+id/lowMaxInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="4250" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/lowMinValue" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="1000" android:gravity="center" android:background="@drawable/bg_ios_inset" android:padding="8dp" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/lowMaxValue" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="4250" android:gravity="center" android:background="@drawable/bg_ios_inset" android:padding="8dp" android:textColor="@color/ios_label_secondary" android:layout_marginEnd="4dp" />
                         <EditText android:id="@+id/lowValueInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:hint="0" android:inputType="numberSigned|numberDecimal" android:gravity="center" android:background="@drawable/bg_ios_inset" />
                     </LinearLayout>
 
-                    <!-- Baris Mid -->
+                    <!-- Baris Mid: Min bisa dipilih (tap), Max ngikut High-Min -->
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingBottom="6dp">
                         <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Mid" android:textColor="@color/ios_orange" android:textStyle="bold" />
-                        <EditText android:id="@+id/midMinInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="4500" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
-                        <EditText android:id="@+id/midMaxInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="8250" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/midMinValue" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="4500" android:gravity="center" android:background="@drawable/bg_ios_inset" android:padding="8dp" android:textColor="@color/ios_blue" android:clickable="true" android:focusable="true" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/midMaxValue" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="8250" android:gravity="center" android:background="@drawable/bg_ios_inset" android:padding="8dp" android:textColor="@color/ios_label_secondary" android:layout_marginEnd="4dp" />
                         <EditText android:id="@+id/midValueInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:hint="0" android:inputType="numberSigned|numberDecimal" android:gravity="center" android:background="@drawable/bg_ios_inset" />
                     </LinearLayout>
 
-                    <!-- Baris High -->
+                    <!-- Baris High: Min bisa dipilih (tap), Max selalu 16000 (akhir map) -->
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:paddingBottom="10dp">
                         <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="High" android:textColor="@color/ios_red" android:textStyle="bold" />
-                        <EditText android:id="@+id/highMinInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="8500" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
-                        <EditText android:id="@+id/highMaxInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="16000" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/highMinValue" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="8500" android:gravity="center" android:background="@drawable/bg_ios_inset" android:padding="8dp" android:textColor="@color/ios_blue" android:clickable="true" android:focusable="true" android:layout_marginEnd="4dp" />
+                        <TextView android:id="@+id/highMaxValue" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="16000" android:gravity="center" android:background="@drawable/bg_ios_inset" android:padding="8dp" android:layout_marginEnd="4dp" />
                         <EditText android:id="@+id/highValueInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:hint="0" android:inputType="numberSigned|numberDecimal" android:gravity="center" android:background="@drawable/bg_ios_inset" />
+                    </LinearLayout>
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/ios_separator" android:layout_marginBottom="10dp" />
+
+                    <TextView style="@style/IosCaption" android:text="Batasi juga ke rentang bukaan gas (TPS%) tertentu — kosongkan buat semua baris:" android:paddingBottom="6dp" />
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp" android:gravity="center_vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Min" style="@style/IosCaption" android:layout_marginEnd="4dp" />
+                        <EditText android:id="@+id/tpsMinInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:hint="0" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="8dp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Max" style="@style/IosCaption" android:layout_marginEnd="4dp" />
+                        <EditText android:id="@+id/tpsMaxInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:hint="100" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="%" style="@style/IosCaption" />
                     </LinearLayout>
 
                     <Button
