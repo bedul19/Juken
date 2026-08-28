@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/ios_background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="12dp">
+        <TextView
+            android:id="@+id/backButtonSettings"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="‹ More"
+            android:textColor="@color/ios_blue"
+            android:textSize="17sp"
+            android:padding="4dp"
+            android:clickable="true"
+            android:focusable="true" />
+    </LinearLayout>
+
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp">
+
+            <TextView style="@style/IosLargeTitle" android:text="Pengaturan ECU" android:paddingBottom="4dp" />
+            <TextView style="@style/IosCaption" android:text="Fitur dari aplikasi resmi BRT" android:paddingBottom="16dp" />
+
+            <!-- ============ RPM LIMITER ============ -->
+            <TextView style="@style/IosSectionHeader" android:text="RPM Limiter" android:paddingBottom="6dp" />
+            <LinearLayout
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:background="@drawable/bg_ios_card"
+                android:padding="16dp" android:layout_marginBottom="20dp">
+
+                <TextView style="@style/IosCaption" android:text="Nilai 5000-16000 (kelipatan 100)" android:paddingBottom="8dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                    <EditText
+                        android:id="@+id/limiterInput"
+                        android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+                        android:text="16000" android:inputType="number" android:background="@drawable/bg_ios_inset" android:padding="10dp" android:layout_marginEnd="8dp" />
+                    <Button android:id="@+id/saveLimiterButton" style="@style/IosButtonPrimary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingStart="20dp" android:paddingEnd="20dp" android:paddingTop="12dp" android:paddingBottom="12dp" android:text="Simpan" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ============ KALIBRASI TPS ============ -->
+            <TextView style="@style/IosSectionHeader" android:text="Kalibrasi TPS" android:paddingBottom="6dp" />
+            <LinearLayout
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:background="@drawable/bg_ios_card"
+                android:padding="16dp" android:layout_marginBottom="20dp">
+
+                <TextView style="@style/IosCaption" android:text="1) Tutup gas penuh (TPS 0%) lalu tap Simpan Close.  2) Buka gas penuh (TPS 100%) lalu tap Simpan Open." android:paddingBottom="10dp" />
+
+                <Button android:id="@+id/startTpsMonitorButton" style="@style/IosButtonPrimary" android:text="Mulai Monitor" android:layout_marginBottom="8dp" />
+                <Button android:id="@+id/stopTpsMonitorButton" style="@style/IosButtonDestructive" android:text="Berhenti Monitor" android:layout_marginBottom="12dp" />
+
+                <TextView android:id="@+id/tpsCalibStatus" style="@style/IosRowTitle" android:text="Raw sekarang: - | Close: - | Open: -" android:paddingBottom="12dp" />
+
+                <Button android:id="@+id/saveTpsCloseButton" style="@style/IosButtonPrimary" android:backgroundTint="#8E8E93" android:text="Simpan Close (0%)" android:layout_marginBottom="8dp" />
+                <Button android:id="@+id/saveTpsOpenButton" style="@style/IosButtonPrimary" android:backgroundTint="#8E8E93" android:text="Simpan Open (100%)" />
+            </LinearLayout>
+
+            <!-- ============ JET FUEL ============ -->
+            <TextView style="@style/IosSectionHeader" android:text="Jet Fuel (tambahan bensin saat gas disentak)" android:paddingBottom="6dp" />
+            <LinearLayout
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:background="@drawable/bg_ios_card"
+                android:padding="16dp" android:layout_marginBottom="20dp">
+
+                <TextView style="@style/IosCaption" android:text="Persen tambahan bensin per kecepatan sentakan gas:" android:paddingBottom="8dp" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="6dp">
+                    <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Slow %" style="@style/IosCaption" />
+                    <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Slow-Med %" style="@style/IosCaption" />
+                    <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Med-Fast %" style="@style/IosCaption" />
+                    <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Fast %" style="@style/IosCaption" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="10dp">
+                    <EditText android:id="@+id/jfSlowInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="0" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
+                    <EditText android:id="@+id/jfSlowMedInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="0" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
+                    <EditText android:id="@+id/jfMedFastInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="0" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
+                    <EditText android:id="@+id/jfFastInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="0" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" />
+                </LinearLayout>
+                <Button android:id="@+id/saveJetFuelButton" style="@style/IosButtonPrimary" android:text="Simpan Jet Fuel" android:layout_marginBottom="16dp" />
+
+                <TextView style="@style/IosCaption" android:text="Ambang kecepatan bukaan gas (%/detik) buat tiap level:" android:paddingBottom="8dp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="6dp">
+                    <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Slow" style="@style/IosCaption" />
+                    <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Slow-Med" style="@style/IosCaption" />
+                    <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Fast" style="@style/IosCaption" />
+                </LinearLayout>
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="10dp">
+                    <EditText android:id="@+id/tpsRateSlowInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="5" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
+                    <EditText android:id="@+id/tpsRateSlowMedInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="15" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" android:layout_marginEnd="4dp" />
+                    <EditText android:id="@+id/tpsRateFastInput" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="30" android:inputType="number" android:gravity="center" android:background="@drawable/bg_ios_inset" />
+                </LinearLayout>
+                <Button android:id="@+id/saveTpsRateButton" style="@style/IosButtonPrimary" android:text="Simpan TPS Rate" />
+            </LinearLayout>
+
+            <!-- ============ FAN TEMP ============ -->
+            <TextView style="@style/IosSectionHeader" android:text="Suhu Nyala Kipas" android:paddingBottom="6dp" />
+            <LinearLayout
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:background="@drawable/bg_ios_card"
+                android:padding="16dp" android:layout_marginBottom="20dp">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                    <EditText
+                        android:id="@+id/fanTempInput"
+                        android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+                        android:hint="mis. 95.5" android:inputType="numberDecimal" android:background="@drawable/bg_ios_inset" android:padding="10dp" android:layout_marginEnd="8dp" />
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="°C" android:textColor="@color/ios_label_secondary" android:layout_marginEnd="8dp" />
+                    <Button android:id="@+id/saveFanTempButton" style="@style/IosButtonPrimary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingStart="20dp" android:paddingEnd="20dp" android:paddingTop="12dp" android:paddingBottom="12dp" android:text="Simpan" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ============ FACTORY RESET ============ -->
+            <TextView style="@style/IosSectionHeader" android:text="Zona Berbahaya" android:paddingBottom="6dp" />
+            <LinearLayout
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:background="@drawable/bg_ios_card"
+                android:padding="16dp">
+
+                <TextView style="@style/IosCaption" android:text="Mengembalikan SEMUA kalibrasi ECU ke pengaturan awal pabrik. Tidak bisa dibatalkan — pastikan sudah export/backup semua map dulu." android:paddingBottom="10dp" />
+                <Button android:id="@+id/factoryResetButton" style="@style/IosButtonDestructive" android:text="Factory Reset ECU" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
