@@ -4,29 +4,23 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Lingkaran gauge -->
+    <!-- Cincin gauge (3/4 lingkaran, ala tachometer) -->
     <path
-        android:pathData="M54,20 A34,34 0 1 1 53.9,20"
+        android:pathData="M27,82 A34,34 0 1 1 81,82"
         android:strokeColor="#FFFFFF"
         android:strokeWidth="6"
+        android:strokeLineCap="round"
         android:fillColor="#00000000" />
 
-    <!-- Jarum -->
+    <!-- Tick redline kanan bawah -->
     <path
-        android:pathData="M54,54 L74,36"
-        android:strokeColor="#4FD1C5"
-        android:strokeWidth="6"
-        android:strokeLineCap="round" />
-
-    <!-- Titik pusat -->
-    <path
-        android:pathData="M54,54 m-5,0 a5,5 0 1 1 10,0 a5,5 0 1 1 -10,0"
-        android:fillColor="#FFFFFF" />
-
-    <!-- Tanda tick kanan bawah (RPM redline) -->
-    <path
-        android:pathData="M80,70 L88,78"
-        android:strokeColor="#FF6B6B"
+        android:pathData="M83,84 L91,92"
+        android:strokeColor="#FF3B30"
         android:strokeWidth="5"
         android:strokeLineCap="round" />
+
+    <!-- Petir (simbol power/tuning) di tengah -->
+    <path
+        android:pathData="M60,22 L40,60 L52,60 L46,90 L74,52 L58,52 Z"
+        android:fillColor="#FF9500" />
 </vector>
