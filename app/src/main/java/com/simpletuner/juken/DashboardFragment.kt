@@ -30,7 +30,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
     private var locationManager: LocationManager? = null
     private var speedValueView: TextView? = null
     private var gpsStatusView: TextView? = null
-
+    private var speedMaxAvgView: TextView? = null
     private val locationListener = LocationListener { location ->
         onLocationUpdate(location)
     }
@@ -55,6 +55,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         val rawLogScroll = view.findViewById<android.widget.ScrollView>(R.id.rawLogScroll)
         speedValueView = view.findViewById(R.id.speedValue)
         gpsStatusView = view.findViewById(R.id.gpsStatusText)
+        speedMaxAvgView = view.findViewById(R.id.speedMaxAvgText)
 
         // Kotak debug ini ScrollView di dalam ScrollView (halaman). Tanpa ini, gesture
         // geser di dalam kotak "kesedot" duluan sama scroll halaman luar, jadi
@@ -68,6 +69,10 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
 
         buildStatGrid(statGrid)
         setupSpeedMonitor()
+
+        if (viewModel.speedSampleCount > 0) {
+            speedMaxAvgView?.text = "Max: ${Math.round(viewModel.maxSpeedKmh)} · Rata-rata: ${Math.round(viewModel.speedSum / viewModel.speedSampleCount)}"
+        }
 
         view.findViewById<View>(R.id.startLiveButton).setOnClickListener {
             if (viewModel.connected.value != true) {
@@ -99,6 +104,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
             statViews["Base Map"]?.text = String.format(Locale.US, "%.2f", f.baseMapValue)
             statViews["Inj. Timing"]?.text = String.format(Locale.US, "%.1f", f.injectorTiming)
             statViews["Ign. Timing"]?.text = String.format(Locale.US, "%.1f", f.ignitionTiming)
+            statViews["Fuel"]?.text = String.format(Locale.US, "%.2f", f.fuelCorrection)
         }
 
         viewModel.rawLog.observe(viewLifecycleOwner) { log ->
@@ -114,7 +120,7 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
         container.removeAllViews()
         val labels = listOf(
             "TPS", "AFR", "Baterai", "Suhu Exhaust",
-            "Suhu Intake", "Base Map", "Inj. Timing", "Ign. Timing"
+            "Suhu Intake", "Base Map", "Fuel", "Inj. Timing", "Ign. Timing"
         )
         labels.chunked(2).forEach { pair ->
             val row = LinearLayout(requireContext()).apply {
@@ -211,6 +217,15 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
     private fun onLocationUpdate(location: Location) {
         val speedKmh = if (location.hasSpeed()) location.speed * 3.6f else 0f
         speedValueView?.text = Math.round(speedKmh).toString()
+
+        if (location.hasSpeed()) {
+            if (speedKmh > viewModel.maxSpeedKmh) viewModel.maxSpeedKmh = speedKmh
+            viewModel.speedSum += speedKmh
+            viewModel.speedSampleCount++
+            val avg = if (viewModel.speedSampleCount > 0) viewModel.speedSum / viewModel.speedSampleCount else 0.0
+            speedMaxAvgView?.text = "Max: ${Math.round(viewModel.maxSpeedKmh)} · Rata-rata: ${Math.round(avg)}"
+        }
+
         gpsStatusView?.text = if (location.hasSpeed()) {
             "Akurasi ±${location.accuracy.toInt()}m"
         } else {
