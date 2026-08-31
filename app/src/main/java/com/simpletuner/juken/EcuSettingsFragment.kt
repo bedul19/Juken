@@ -31,6 +31,11 @@ class EcuSettingsFragment : Fragment(R.layout.fragment_ecu_settings) {
         setupJetFuel(view)
         setupFanTemp(view)
         setupFactoryReset(view)
+
+        // Setiap buka layar ini (dan udah connect), minta ulang setting terbaru dari ECU
+        if (viewModel.connected.value == true) {
+            viewModel.fetchAllSettings()
+        }
     }
 
     private fun requireConnected(): Boolean {
@@ -43,12 +48,39 @@ class EcuSettingsFragment : Fragment(R.layout.fragment_ecu_settings) {
 
     // ---------------- RPM Limiter ----------------
     private fun setupLimiter(view: View) {
-        val input = view.findViewById<EditText>(R.id.limiterInput)
+        val display = view.findViewById<TextView>(R.id.limiterInput)
+        val currentText = view.findViewById<TextView>(R.id.limiterCurrentText)
+        val limiterValues = (5000..16000 step 500).toList()
+
+        display.setOnClickListener {
+            val ctx = requireContext()
+            val current = display.text.toString().toIntOrNull() ?: 16000
+            val picker = android.widget.NumberPicker(ctx).apply {
+                minValue = 0
+                maxValue = limiterValues.size - 1
+                displayedValues = limiterValues.map { it.toString() }.toTypedArray()
+                value = limiterValues.indexOf(current).let { if (it >= 0) it else limiterValues.size - 1 }
+                wrapSelectorWheel = false
+            }
+            val container = android.widget.LinearLayout(ctx).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER
+                setPadding(32, 32, 32, 32)
+                addView(picker)
+            }
+            AlertDialog.Builder(ctx)
+                .setTitle("Pilih RPM Limiter")
+                .setView(container)
+                .setPositiveButton("Pilih") { _, _ -> display.text = limiterValues[picker.value].toString() }
+                .setNegativeButton("Batal", null)
+                .show()
+        }
+
         view.findViewById<View>(R.id.saveLimiterButton).setOnClickListener {
             if (!requireConnected()) return@setOnClickListener
-            val rpm = input.text.toString().toIntOrNull()
+            val rpm = display.text.toString().toIntOrNull()
             if (rpm == null) {
-                Toast.makeText(requireContext(), "Isi angka RPM dulu", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Pilih nilai RPM dulu", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             AlertDialog.Builder(requireContext())
@@ -57,6 +89,15 @@ class EcuSettingsFragment : Fragment(R.layout.fragment_ecu_settings) {
                 .setPositiveButton("Ya, simpan") { _, _ -> viewModel.setLimiter(rpm) }
                 .setNegativeButton("Batal", null)
                 .show()
+        }
+
+        viewModel.currentLimiter.observe(viewLifecycleOwner) { value ->
+            if (value != null) {
+                currentText.text = "Setting saat ini: $value RPM"
+                // isi otomatis picker ke nilai kelipatan 500 terdekat dari setting asli
+                val nearest = limiterValues.minByOrNull { kotlin.math.abs(it - value) }
+                if (nearest != null) display.text = nearest.toString()
+            }
         }
     }
 
@@ -126,6 +167,23 @@ class EcuSettingsFragment : Fragment(R.layout.fragment_ecu_settings) {
             viewModel.setJetFuelTpsRate(slow, slowMed, fast)
             Toast.makeText(requireContext(), "TPS Rate dikirim", Toast.LENGTH_SHORT).show()
         }
+
+        val currentText = view.findViewById<TextView>(R.id.jetFuelCurrentText)
+        viewModel.currentJetFuel.observe(viewLifecycleOwner) { values ->
+            if (values != null && values.size == 4) {
+                view.findViewById<EditText>(R.id.jfSlowInput).setText(values[0].toString())
+                view.findViewById<EditText>(R.id.jfSlowMedInput).setText(values[1].toString())
+                view.findViewById<EditText>(R.id.jfMedFastInput).setText(values[2].toString())
+                view.findViewById<EditText>(R.id.jfFastInput).setText(values[3].toString())
+                currentText.text = "Setting saat ini: ${values.joinToString(" / ")}%"
+            }
+        }
+        viewModel.currentTpsRate.observe(viewLifecycleOwner) { values ->
+            if (values != null && values.size == 3) {
+                view.findViewById<EditText>(R.id.tpsRateSlowInput).setText(values[0].toString())
+                view.findViewById<EditText>(R.id.tpsRateSlowMedInput).setText(values[1].toString())
+                view.findViewById<EditText>(R.id.tpsRateFastInput).setText(values[2].toString())
+            }
     }
 
     // ---------------- Fan Temp ----------------
