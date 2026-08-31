@@ -85,6 +85,7 @@ class EcuViewModel : ViewModel() {
             _connected.postValue(true)
             _statusMessage.postValue("Terhubung ke ECU")
             fetchIdentity()
+            fetchAllSettings()
         }
     )
 
@@ -175,6 +176,77 @@ class EcuViewModel : ViewModel() {
     fun factoryReset() {
         appendRaw("» TX: 260C (FACTORY RESET)")
         link.send("260C")
+    }
+
+    // ==================== Auto Tune: state rekam AFR — persisten lintas tab ====================
+    // Kalau ini disimpan di Fragment biasa, data hilang tiap pindah tab (Fragment baru dibuat
+    // ulang tiap tap bottom nav). Disimpan di sini supaya rekam tetap jalan di background.
+    var autoTuneRecording = false
+        private set
+    var autoTuneSumAfr = Array(EcuProtocol.FUEL_MAP.rows) { FloatArray(EcuProtocol.FUEL_MAP.cols) }
+        private set
+    var autoTuneCountAfr = Array(EcuProtocol.FUEL_MAP.rows) { IntArray(EcuProtocol.FUEL_MAP.cols) }
+        private set
+    private val _autoTuneFilledCells = MutableLiveData(0)
+    val autoTuneFilledCells: LiveData<Int> = _autoTuneFilledCells
+
+    fun startAutoTuneRecording() {
+        autoTuneSumAfr = Array(EcuProtocol.FUEL_MAP.rows) { FloatArray(EcuProtocol.FUEL_MAP.cols) }
+        autoTuneCountAfr = Array(EcuProtocol.FUEL_MAP.rows) { IntArray(EcuProtocol.FUEL_MAP.cols) }
+        _autoTuneFilledCells.postValue(0)
+        autoTuneRecording = true
+        startLive()
+    }
+
+    fun stopAutoTuneRecording() {
+        autoTuneRecording = false
+        stopLive()
+    }
+
+    private fun accumulateAutoTuneSample(frame: LiveFrame) {
+        if (!autoTuneRecording) return
+        val row = EcuProtocol.rowForLoadPercent(frame.tpsPercent.coerceIn(0, 100))
+        val rpmStart = 1000
+        val rpmStep = 250
+        val col = ((frame.rpm - rpmStart).toFloat() / rpmStep).toInt().coerceIn(0, EcuProtocol.FUEL_MAP.cols - 1)
+        if (row in autoTuneSumAfr.indices && col in autoTuneSumAfr[0].indices) {
+            autoTuneSumAfr[row][col] += frame.afr
+            autoTuneCountAfr[row][col] += 1
+            _autoTuneFilledCells.postValue(autoTuneCountAfr.sumOf { r -> r.count { it > 0 } })
+        }
+    }
+
+    // ==================== Baca semua setting ECU sekaligus (command 1607) ====================
+    // Balasannya itu SATU baris panjang dipisah ";", token ke-0 = "9606" (sync),
+    // lalu tiap index berikutnya = 1 field config, urutannya dikonfirmasi dari
+    // decompile main_menu.java (posisi 0..68+). Kita ambil yang kita butuh:
+    // index 16 = limiter, 48-51 = jet fuel (4 nilai), 52-54 = tps rate (3 nilai), 68 = suhu_fan (x10).
+    private val _currentLimiter = MutableLiveData<Int?>(null)
+    val currentLimiter: LiveData<Int?> = _currentLimiter
+    private val _currentJetFuel = MutableLiveData<List<Int>?>(null)
+    val currentJetFuel: LiveData<List<Int>?> = _currentJetFuel
+    private val _currentTpsRate = MutableLiveData<List<Int>?>(null)
+    val currentTpsRate: LiveData<List<Int>?> = _currentTpsRate
+    private val _currentFanTemp = MutableLiveData<Float?>(null)
+    val currentFanTemp: LiveData<Float?> = _currentFanTemp
+
+    /** Minta semua setting ECU sekarang (limiter, jet fuel, tps rate, suhu kipas, dll) — command 1607. */
+    fun fetchAllSettings() {
+        appendRaw("» TX: 1607 (baca semua setting)")
+        link.send("1607")
+    }
+
+    private fun parseSettingsDump(line: String) {
+        val tokens = line.split(";")
+        if (tokens.isEmpty() || tokens[0].trim() != "9606") return
+        fun at(i: Int): Int? = tokens.getOrNull(i)?.trim()?.toIntOrNull()
+
+        at(16)?.let { _currentLimiter.postValue(it) }
+        val jf = listOfNotNull(at(48), at(49), at(50), at(51))
+        if (jf.size == 4) _currentJetFuel.postValue(jf)
+        val rate = listOfNotNull(at(52), at(53), at(54))
+        if (rate.size == 3) _currentTpsRate.postValue(rate)
+        at(68)?.let { _currentFanTemp.postValue(it / 10f) }
     }
 
     /** Mulai live stream: langsung kirim 160A (sesuai APK resmi BRT, tanpa handshake). */
@@ -277,6 +349,12 @@ class EcuViewModel : ViewModel() {
             return
         }
 
+        // Balasan dump semua setting (command 1607)
+        if (trimmed.startsWith("9606")) {
+            parseSettingsDump(trimmed)
+            return
+        }
+
         // Balasan poll kalibrasi TPS: "A601;raw_sekarang;raw_close;raw_open"
         if (trimmed.startsWith("A601;")) {
             val parts = trimmed.removePrefix("A601;").split(";").mapNotNull { it.toIntOrNull() }
@@ -316,6 +394,7 @@ class EcuViewModel : ViewModel() {
 
         val frame = EcuProtocol.parseLiveLine(trimmed, ++pktCounter) ?: return
         _liveFrame.postValue(frame)
+        accumulateAutoTuneSample(frame)
 
         if (isLogging) {
             try {
