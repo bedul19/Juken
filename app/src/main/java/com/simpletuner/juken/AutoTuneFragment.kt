@@ -25,9 +25,6 @@ class AutoTuneFragment : Fragment(R.layout.fragment_autotune) {
     private val viewModel: EcuViewModel by activityViewModels()
 
     private val spec = EcuProtocol.FUEL_MAP
-    private var recording = false
-    private var sumAfr = Array(spec.rows) { FloatArray(spec.cols) }
-    private var countAfr = Array(spec.rows) { IntArray(spec.cols) }
     private var baselineRows: List<List<Float>> = emptyList()
     private var suggestionRows: List<List<Float>> = emptyList()
 
@@ -42,21 +39,26 @@ class AutoTuneFragment : Fragment(R.layout.fragment_autotune) {
         val vScroll = view.findViewById<View>(R.id.suggestionVScroll)
         val table = view.findViewById<TableLayout>(R.id.suggestionTable)
 
+        // Tampilkan status rekam yang sebenarnya (bisa aja masih jalan dari sebelum
+        // pindah tab, soalnya state-nya sekarang di ViewModel bukan di layar ini).
+        if (viewModel.autoTuneRecording) {
+            statusText.text = "Merekam... (lanjut dari sebelumnya)"
+        }
+        val filledNow = viewModel.autoTuneCountAfr.sumOf { row -> row.count { it > 0 } }
+        detailText.text = "$filledNow dari ${spec.rows * spec.cols} sel data terkumpul"
+
         view.findViewById<View>(R.id.startRecordButton).setOnClickListener {
             if (viewModel.connected.value != true) {
                 Toast.makeText(requireContext(), "Hubungkan ke ECU dulu", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            resetAccumulator()
-            recording = true
+            viewModel.startAutoTuneRecording()
             statusText.text = "Merekam..."
-            viewModel.startLive()
         }
 
         view.findViewById<View>(R.id.stopRecordButton).setOnClickListener {
-            recording = false
+            viewModel.stopAutoTuneRecording()
             statusText.text = "Rekam dihentikan"
-            viewModel.stopLive()
         }
 
         view.findViewById<View>(R.id.computeSuggestionButton).setOnClickListener {
@@ -65,7 +67,7 @@ class AutoTuneFragment : Fragment(R.layout.fragment_autotune) {
                 Toast.makeText(requireContext(), "Isi target AFR dulu", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val filledCells = countAfr.sumOf { row -> row.count { it > 0 } }
+            val filledCells = viewModel.autoTuneCountAfr.sumOf { row -> row.count { it > 0 } }
             if (filledCells == 0) {
                 Toast.makeText(requireContext(), "Belum ada data terekam", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -81,15 +83,7 @@ class AutoTuneFragment : Fragment(R.layout.fragment_autotune) {
 
         view.findViewById<View>(R.id.applySuggestionButton).setOnClickListener { confirmApply() }
 
-        viewModel.liveFrame.observe(viewLifecycleOwner) { f ->
-            if (!recording) return@observe
-            val row = loadToRow(f.tpsPercent)
-            val col = rpmToCol(f.rpm)
-            if (row in 0 until spec.rows && col in 0 until spec.cols) {
-                sumAfr[row][col] += f.afr
-                countAfr[row][col] += 1
-            }
-            val filled = countAfr.sumOf { r -> r.count { it > 0 } }
+        viewModel.autoTuneFilledCells.observe(viewLifecycleOwner) { filled ->
             detailText.text = "$filled dari ${spec.rows * spec.cols} sel data terkumpul"
         }
 
@@ -101,24 +95,6 @@ class AutoTuneFragment : Fragment(R.layout.fragment_autotune) {
         }
     }
 
-    private fun resetAccumulator() {
-        sumAfr = Array(spec.rows) { FloatArray(spec.cols) }
-        countAfr = Array(spec.rows) { IntArray(spec.cols) }
-    }
-
-    /** Sumbu baris (Load%) HARUS sama dengan cara render tabel Fuel Map di MapDetailFragment (0% di atas). */
-    private fun loadToRow(tpsPercent: Int): Int {
-        val loadPercent = tpsPercent.coerceIn(0, 100)
-        return EcuProtocol.rowForLoadPercent(loadPercent)
-    }
-
-    /** Sumbu kolom (RPM) HARUS sama dengan asumsi rpmStart/rpmStep di MapDetailFragment. */
-    private fun rpmToCol(rpm: Int): Int {
-        val rpmStart = 1000
-        val rpmStep = 250
-        return ((rpm - rpmStart).toFloat() / rpmStep).toInt().coerceIn(0, spec.cols - 1)
-    }
-
     private fun computeSuggestion(target: Float, table: TableLayout, summaryText: TextView, placeholder: View, vScroll: View) {
         if (baselineRows.isEmpty()) {
             Toast.makeText(requireContext(), "Belum ada baseline Fuel Map. Baca dulu / sambungkan ECU.", Toast.LENGTH_SHORT).show()
@@ -127,9 +103,9 @@ class AutoTuneFragment : Fragment(R.layout.fragment_autotune) {
         var changedCells = 0
         val result = baselineRows.mapIndexed { r, row ->
             row.mapIndexed { c, baseValue ->
-                val count = countAfr.getOrNull(r)?.getOrNull(c) ?: 0
+                val count = viewModel.autoTuneCountAfr.getOrNull(r)?.getOrNull(c) ?: 0
                 if (count > 0) {
-                    val avgAfr = sumAfr[r][c] / count
+                    val avgAfr = viewModel.autoTuneSumAfr[r][c] / count
                     val error = (avgAfr - target) / target // positif = kelewat kering (lean), butuh tambah bensin
                     val corrected = baseValue * (1f + error)
                     if (kotlin.math.abs(corrected - baseValue) > 0.01f) changedCells++
