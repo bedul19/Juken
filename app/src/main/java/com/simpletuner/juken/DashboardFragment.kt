@@ -79,9 +79,13 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
                 Toast.makeText(requireContext(), "Hubungkan ke ECU dulu di tab Connect", Toast.LENGTH_SHORT).show()
             } else {
                 viewModel.startLive()
+                requireActivity().window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             }
         }
-        view.findViewById<View>(R.id.pollLiveButton).setOnClickListener { viewModel.stopLive() }
+        view.findViewById<View>(R.id.pollLiveButton).setOnClickListener {
+            viewModel.stopLive()
+            requireActivity().window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
 
         view.findViewById<View>(R.id.sendRawButton).setOnClickListener {
             val cmd = rawInput.text.toString().trim()
@@ -235,6 +239,9 @@ class DashboardFragment : Fragment(R.layout.fragment_dashboard) {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        // Live stream TETAP jalan (biar Auto Tune/Logging di tab lain gak putus),
+        // tapi layar HP boleh balik ke perilaku normal (auto-lock) begitu keluar Dashboard.
+        activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         try {
             locationManager?.removeUpdates(locationListener)
         } catch (_: SecurityException) { }
