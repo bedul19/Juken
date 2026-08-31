@@ -40,12 +40,14 @@
                 android:orientation="vertical" android:background="@drawable/bg_ios_card"
                 android:padding="16dp" android:layout_marginBottom="20dp">
 
-                <TextView style="@style/IosCaption" android:text="Nilai 5000-16000 (kelipatan 100)" android:paddingBottom="8dp" />
+                <TextView android:id="@+id/limiterCurrentText" style="@style/IosCaption" android:text="Setting saat ini: -" android:textColor="@color/ios_blue" android:paddingBottom="8dp" />
+                <TextView style="@style/IosCaption" android:text="Tap kotak buat pilih (5000-16000, kelipatan 500)" android:paddingBottom="8dp" />
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
-                    <EditText
+                    <TextView
                         android:id="@+id/limiterInput"
                         android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
-                        android:text="16000" android:inputType="number" android:background="@drawable/bg_ios_inset" android:padding="10dp" android:layout_marginEnd="8dp" />
+                        android:text="16000" android:gravity="center" android:background="@drawable/bg_ios_inset" android:padding="10dp" android:layout_marginEnd="8dp"
+                        android:clickable="true" android:focusable="true" />
                     <Button android:id="@+id/saveLimiterButton" style="@style/IosButtonPrimary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingStart="20dp" android:paddingEnd="20dp" android:paddingTop="12dp" android:paddingBottom="12dp" android:text="Simpan" />
                 </LinearLayout>
             </LinearLayout>
@@ -75,6 +77,7 @@
                 android:orientation="vertical" android:background="@drawable/bg_ios_card"
                 android:padding="16dp" android:layout_marginBottom="20dp">
 
+                <TextView android:id="@+id/jetFuelCurrentText" style="@style/IosCaption" android:text="Setting saat ini: -" android:textColor="@color/ios_blue" android:paddingBottom="8dp" />
                 <TextView style="@style/IosCaption" android:text="Persen tambahan bensin per kecepatan sentakan gas:" android:paddingBottom="8dp" />
 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="6dp">
