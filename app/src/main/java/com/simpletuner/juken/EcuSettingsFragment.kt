@@ -184,6 +184,7 @@ class EcuSettingsFragment : Fragment(R.layout.fragment_ecu_settings) {
                 view.findViewById<EditText>(R.id.tpsRateSlowMedInput).setText(values[1].toString())
                 view.findViewById<EditText>(R.id.tpsRateFastInput).setText(values[2].toString())
             }
+        }
     }
 
     // ---------------- Fan Temp ----------------
