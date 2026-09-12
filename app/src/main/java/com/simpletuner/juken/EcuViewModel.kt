@@ -334,10 +334,17 @@ class EcuViewModel : ViewModel() {
         link.send(command)
     }
 
+    /** appendRaw dipanggil dari 2 thread berbeda (thread background Bluetooth & thread UI utama
+     *  waktu user tap tombol) — rawLines HARUS disinkronkan, kalau tidak bisa
+     *  ConcurrentModificationException yang bikin force close. */
     private fun appendRaw(line: String) {
-        rawLines.addLast(line)
-        while (rawLines.size > 200) rawLines.removeFirst()
-        _rawLog.postValue(rawLines.joinToString("\n"))
+        val snapshot: String
+        synchronized(rawLines) {
+            rawLines.addLast(line)
+            while (rawLines.size > 200) rawLines.removeFirst()
+            snapshot = rawLines.joinToString("\n")
+        }
+        _rawLog.postValue(snapshot)
     }
 
     private fun handleLine(line: String) {
